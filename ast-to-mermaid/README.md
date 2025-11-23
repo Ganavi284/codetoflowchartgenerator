@@ -1,64 +1,65 @@
-ast-to-mermaid
+# AST to Mermaid
 
-Node.js service that converts code into refined Mermaid flowcharts using Tree‑sitter ASTs.
+Convert Abstract Syntax Trees (AST) to Mermaid diagrams for visualization.
 
-## Endpoints
+## Installation
 
-- POST /convert
-  - body: { code: string, language?: 'auto'|'js'|'ts'|'python'|'java'|'c'|'cpp' }
-  - returns: { mermaid: string, detectedLanguage: string }
-
-- POST /detect
-  - body: { code: string }
-  - returns: { detectedLanguage: string }
-
-## Run locally
-
-```
-cd ast-to-mermaid
+```bash
 npm install
-npm run serve
 ```
 
-## Language Support
+## CLI Usage
 
-- JavaScript, TypeScript: mapper wrappers + configs
-- Python: mapper wrapper + config
-- Java: wrapper + config (extracts method calls like System.out.println)
-- C++: wrapper + config (handles cout << and printf)
-- C: wrapper + config (handles printf/puts)
+```bash
+ast2mermaid -l <language> <input-file> [-o <output-file>]
+```
 
-## Architecture
+### Examples:
 
-- src/parser.mjs: Tree‑sitter setup and language map
-- src/index.mjs: generateMermaid entry
-- src/language-detect.mjs: heuristics for 6 core languages
-- src/mappings/_common.mjs: flowchart builder utilities
-- src/mappings/common-flowchart.mjs: shared AST→flowchart engine
-- src/mappings/*-config.mjs: language configs (node type detection + extraction)
-- src/mappings/*.mjs: thin wrappers calling the common engine with a config
+```bash
+# Convert a JavaScript file to Mermaid diagram
+ast2mermaid -l javascript example.js
 
-## Directory Structure
+# Convert a Python file to Mermaid diagram and save to file
+ast2mermaid -l python -o diagram.mmd example.py
+```
 
-- [bin/](bin/): Command-line interface
-- [docs/](docs/): Documentation
-  - [api/](docs/api/): API reference
-  - [guides/](docs/guides/): User guides
-- [examples/](examples/): Example source code files
-- [src/](src/): Source code
-  - [mappings/](src/mappings/): Language-specific mapping files
-- [tests/](tests/): Test files
-  - [c/](tests/c/): C language tests
-  - [cpp/](tests/cpp/): C++ language tests
-  - [java/](tests/java/): Java language tests
-  - [javascript/](tests/javascript/): JavaScript language tests
-  - [python/](tests/python/): Python language tests
-  - [unit/](tests/unit/): Unit tests
-  - [integration/](tests/integration/): Integration tests
+## Supported Languages
 
-## Notes
+- C
+- C++
+- Java
+- JavaScript
+- Python
+- TypeScript
+- Pascal (requires manual parser setup)
+- Fortran (requires manual parser setup)
 
-- The common engine always creates one end node and connects pending branches.
-- If a snippet falls back to start→end, extend the corresponding *-config.mjs.
+## Parser Setup
 
+For Pascal and Fortran parsers, see instructions in the [parsers/README.md](parsers/README.md) file.
 
+## Development
+
+This project follows a modular structure:
+
+```
+ast-to-mermaid/
+├── bin/              # CLI executable
+├── src/              # Source code
+│   ├── extractors/   # AST extraction logic
+│   ├── mappings/     # Language-specific mappings
+│   ├── mermaid/      # Mermaid diagram generation
+│   ├── normalizer/   # AST normalization
+│   ├── grammar/      # Language grammar definitions
+│   ├── pipeline/     # Processing pipeline
+│   ├── types/        # Type definitions
+│   ├── fallback/     # Fallback handlers
+│   ├── utils/        # Utility functions
+│   └── walkers/      # AST traversal
+└── parsers/          # Tree-sitter parsers
+```
+
+## License
+
+MIT

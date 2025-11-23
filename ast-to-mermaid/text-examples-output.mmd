@@ -1,0 +1,50 @@
+flowchart TD
+N1(["start"])
+N2["expression"]
+N3[/"Welcome to the program"/]
+N4["expression"]
+N5["userName = expression"]
+N6[/"Hello, userName!"/]
+N7["expression"]
+N8["score = expression"]
+N9[/"Your score is: score points"/]
+N10["expression"]
+N11["attempts = expression"]
+N12[/"Attempt attempts of score"/]
+N13["expression"]
+N14["input = new Scanner(System.in)"]
+N15[/"Enter your age:"/]
+N16["age = read int"]
+N17["expression"]
+N18{"if age >= 18"}
+N19[/"You are eligible to vote"/]
+N20[/"You are not eligible to vote"/]
+N21["expression"]
+N22[/"Processing item i"/]
+N23["expression"]
+N24(["end"])
+N1 --> N2
+N2 --> N3
+N3 --> N4
+N4 --> N5
+N5 --> N6
+N6 --> N7
+N7 --> N8
+N8 --> N9
+N9 --> N10
+N10 --> N11
+N11 --> N12
+N12 --> N13
+N13 --> N14
+N14 --> N15
+N15 --> N16
+N16 --> N17
+N17 --> N18
+N18 --> N19
+N19 --> N20
+N18 --> N21
+N21 --> N22
+N22 --> N23
+N19 --> N24
+N20 --> N24
+N23 --> N24

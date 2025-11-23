@@ -1,28 +1,35 @@
 {
   "name": "ast-to-mermaid",
   "version": "1.0.0",
-  "description": "Generate Mermaid flowcharts from source code using Tree-sitter",
-  "type": "module",
+  "description": "Convert Abstract Syntax Trees (AST) to Mermaid diagrams for visualization",
   "main": "src/index.mjs",
-  "scripts": {
-    "build": "echo 'ESM project, no build step'",
-    "cli": "node ./bin/cli.mjs",
-    "serve": "node ./server.mjs"
-  },
+  "type": "module",
   "bin": {
-    "ast-to-mermaid": "./bin/cli.mjs"
+    "ast2mermaid": "bin/cli.mjs"
   },
-  "keywords": [],
+  "scripts": {
+    "test": "node src/walkers/test.js",
+    "flow": "node bin/cli.mjs",
+    "serve": "node server.mjs"
+  },
+  "keywords": [
+    "ast",
+    "mermaid",
+    "visualization",
+    "diagram"
+  ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
-    "mermaid": "^10.9.1",
-    "tree-sitter": "^0.25.0",
-    "tree-sitter-c": "^0.24.1",
-    "tree-sitter-cpp": "^0.23.4",
-    "tree-sitter-java": "^0.21.0",
-    "tree-sitter-javascript": "^0.23.1",
-    "tree-sitter-python": "^0.21.0",
-    "tree-sitter-typescript": "^0.23.0"
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "mermaid": "^10.0.0",
+    "tree-sitter": "^0.20.3",
+    "tree-sitter-c": "^0.20.0",
+    "tree-sitter-cpp": "^0.20.0",
+    "tree-sitter-java": "^0.19.0",
+    "tree-sitter-javascript": "^0.19.0",
+    "tree-sitter-python": "^0.20.0",
+    "tree-sitter-typescript": "0.19.0"
   }
 }

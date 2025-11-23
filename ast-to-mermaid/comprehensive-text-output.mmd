@@ -1,0 +1,54 @@
+flowchart TD
+N1(["start"])
+N2["expression"]
+N3[/"Welcome to the application"/]
+N4["expression"]
+N5[/"Please enter your username:"/]
+N6["expression"]
+N7["scanner = new Scanner(System.in)"]
+N8["assignment"]
+N9["expression"]
+N10[/"Hello, username! Welcome."/]
+N11["expression"]
+N12[/"Enter your age:"/]
+N13["age = read int"]
+N14["expression"]
+N15{"if age >= 18"}
+N16[/"You are eligible for all features"/]
+N17[/"Some features are restricted"/]
+N18["expression"]
+N19[/"Loading module i of 3"/]
+N20["expression"]
+N21["score = expression"]
+N22[/"username, your final score is score points"/]
+N23["expression"]
+N24[/"Application terminated successfully"/]
+N25["expression"]
+N26(["end"])
+N1 --> N2
+N2 --> N3
+N3 --> N4
+N4 --> N5
+N5 --> N6
+N6 --> N7
+N7 --> N8
+N8 --> N9
+N9 --> N10
+N10 --> N11
+N11 --> N12
+N12 --> N13
+N13 --> N14
+N14 --> N15
+N15 --> N16
+N16 --> N17
+N15 --> N18
+N18 --> N19
+N19 --> N20
+N20 --> N21
+N21 --> N22
+N22 --> N23
+N23 --> N24
+N24 --> N25
+N16 --> N26
+N17 --> N26
+N25 --> N26

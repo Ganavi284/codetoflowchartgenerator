@@ -1,0 +1,21 @@
+{
+  "name": "javascript-mermaid-converter",
+  "version": "1.0.0",
+  "description": "JavaScript to Mermaid diagram converter",
+  "type": "module",
+  "main": "javascript.mjs",
+  "scripts": {
+    "test": "node test-conversion.mjs",
+    "example": "node run-example.mjs",
+    "start": "node run-example.mjs"
+  },
+  "keywords": [
+    "javascript",
+    "mermaid",
+    "ast",
+    "diagram",
+    "converter"
+  ],
+  "author": "AST to Mermaid Converter",
+  "license": "MIT"
+}

@@ -1,0 +1,21 @@
+{
+  "name": "java-mermaid-converter",
+  "version": "1.0.0",
+  "description": "Java to Mermaid diagram converter",
+  "type": "module",
+  "main": "java.mjs",
+  "scripts": {
+    "test": "node test-conversion.mjs",
+    "example": "node run-example.mjs",
+    "start": "node run-example.mjs"
+  },
+  "keywords": [
+    "java",
+    "mermaid",
+    "ast",
+    "diagram",
+    "converter"
+  ],
+  "author": "AST to Mermaid Converter",
+  "license": "MIT"
+}

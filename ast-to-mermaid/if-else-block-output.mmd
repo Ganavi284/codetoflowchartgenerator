@@ -1,0 +1,17 @@
+flowchart TD
+N1(["start"])
+N2["sc = new Scanner(System.in)"]
+N3[/"Enter a number:"/]
+N4["x = read int"]
+N5{"if x > 0"}
+N6[/"Positive"/]
+N7[/"Zero or Negative"/]
+N8(["end"])
+N1 --> N2
+N2 --> N3
+N3 --> N4
+N4 --> N5
+N5 -- Yes --> N6
+N5 -- No --> N7
+N6 --> N8
+N7 --> N8

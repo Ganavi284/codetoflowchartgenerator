@@ -1,0 +1,21 @@
+{
+  "name": "python-mermaid-converter",
+  "version": "1.0.0",
+  "description": "Python to Mermaid diagram converter",
+  "type": "module",
+  "main": "python.mjs",
+  "scripts": {
+    "test": "node test-conversion.mjs",
+    "example": "node run-example.mjs",
+    "start": "node run-example.mjs"
+  },
+  "keywords": [
+    "python",
+    "mermaid",
+    "ast",
+    "diagram",
+    "converter"
+  ],
+  "author": "AST to Mermaid Converter",
+  "license": "MIT"
+}

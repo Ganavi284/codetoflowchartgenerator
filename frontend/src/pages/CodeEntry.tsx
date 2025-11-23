@@ -3,7 +3,7 @@ import { Box, Button, Typography, Paper, Select, MenuItem, FormControl, InputLab
 import Editor from '@monaco-editor/react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import BackButton from '../components/BackButton';
-import { convertCodeToMermaid, detectLanguageLocal, detectLanguageAPI } from '../services/api';
+import { convertCodeToMermaid } from '../services/api';
 import { styled } from '@mui/material/styles';
 
 type LanguageType = 'select' | 'js' | 'ts' | 'python' | 'java' | 'c' | 'cpp' | 'pascal' | 'fortran';
@@ -116,58 +116,9 @@ const CodeEntry: React.FC = () => {
         }
         
         try {
-            // Detect the actual language of the code
-            let detectedLanguage: string | null = detectLanguageLocal(code);
-            if (!detectedLanguage || detectedLanguage === 'no language detected') {
-                try {
-                    detectedLanguage = await detectLanguageAPI(code);
-                } catch (error) {
-                    console.warn('API language detection failed:', error);
-                }
-            }
-            
-            // Normalize detected language
-            let normalizedDetected: LanguageType | 'no language detected' = detectedLanguage as LanguageType;
-            if (detectedLanguage === 'javascript') {
-                normalizedDetected = 'js';
-            } else if (detectedLanguage === 'typescript') {
-                normalizedDetected = 'ts';
-            } else if (detectedLanguage === 'pascal') {
-                normalizedDetected = 'pascal';
-            } else if (detectedLanguage === 'fortran') {
-                normalizedDetected = 'fortran';
-            } else if (detectedLanguage === 'python') {
-                normalizedDetected = 'python';
-            } else if (detectedLanguage === 'java') {
-                normalizedDetected = 'java';
-            } else if (detectedLanguage === 'c') {
-                normalizedDetected = 'c';
-            } else if (detectedLanguage === 'cpp') {
-                normalizedDetected = 'cpp';
-            } else if (detectedLanguage === 'no language detected') {
-                normalizedDetected = 'no language detected';
-            }
-            
-            // Check if selected language matches detected language
-            const languageMismatch = 
-                (selectedLanguage === 'js' && normalizedDetected !== 'js') ||
-                (selectedLanguage === 'ts' && normalizedDetected !== 'ts') ||
-                (selectedLanguage === 'python' && normalizedDetected !== 'python') ||
-                (selectedLanguage === 'java' && normalizedDetected !== 'java') ||
-                (selectedLanguage === 'c' && normalizedDetected !== 'c') ||
-                (selectedLanguage === 'cpp' && normalizedDetected !== 'cpp') ||
-                (selectedLanguage === 'pascal' && normalizedDetected !== 'pascal') ||
-                (selectedLanguage === 'fortran' && normalizedDetected !== 'fortran');
-            
-            if (languageMismatch && normalizedDetected && normalizedDetected !== 'no language detected') {
-                setOutputCode(`// Error: The selected language (${selectedLanguage}) does not match the detected language (${normalizedDetected}) of your code. Please select the correct language.`);
-                return;
-            }
-            
+            // Directly convert using the user-selected language, without cross-verification
             setOutputCode('// Converting to Mermaid...');
-            // send selected language to backend for conversion
             const mermaid = await convertCodeToMermaid(code, selectedLanguage as any);
-            // Don't add colors here - keep the code clean for editing
             setOutputCode(mermaid || '');
         } catch (e: any) {
             setOutputCode(`// Error: ${e?.message || String(e)}`);

@@ -1,0 +1,27 @@
+flowchart TD
+N1(["start"])
+N2["sc = new Scanner(System.in)"]
+N3[/"Enter marks:"/]
+N4["marks = read int"]
+N5{"if marks >= 90"}
+N6[/"Grade A"/]
+N7{"else if marks >= 75"}
+N8[/"Grade B"/]
+N9{"else if marks >= 50"}
+N10[/"Grade C"/]
+N11[/"Fail"/]
+N12(["end"])
+N1 --> N2
+N2 --> N3
+N3 --> N4
+N4 --> N5
+N5 -- Yes --> N6
+N7 -- Yes --> N8
+N9 -- Yes --> N10
+N9 -- No --> N11
+N7 -- No --> N9
+N5 -- No --> N7
+N10 --> N12
+N11 --> N12
+N8 --> N12
+N6 --> N12

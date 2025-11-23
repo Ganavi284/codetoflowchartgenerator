@@ -1,0 +1,48 @@
+flowchart TD
+N1(["start"])
+N2["number = expression"]
+N3["expression"]
+N4{"if number > 10"}
+N5[/"Number is greater than 10"/]
+N6["expression"]
+N7{"if number % 2 == 0"}
+N8[/"Number is even"/]
+N9[/"Number is odd"/]
+N10["expression"]
+N11{"if number < 0"}
+N12[/"Number is negative"/]
+N13{"else if number < 10"}
+N14[/"Number is single digit"/]
+N15{"else if number < 100"}
+N16[/"Number is double digit"/]
+N17[/"Number is large"/]
+N18["expression"]
+N19{"if number > 0"}
+N20{"if number > 10"}
+N21[/"Positive and greater than 10"/]
+N22[/"Positive but 10 or less"/]
+N23[/"Test completed"/]
+N24(["end"])
+N1 --> N2
+N2 --> N3
+N3 --> N4
+N4 --> N5
+N4 --> N6
+N6 --> N7
+N7 --> N8
+N8 --> N9
+N7 --> N10
+N10 --> N11
+N11 --> N12
+N12 --> N13
+N13 --> N14
+N14 --> N15
+N15 --> N16
+N16 --> N17
+N11 --> N18
+N18 --> N19
+N19 --> N20
+N20 --> N21
+N21 --> N22
+N19 --> N23
+N23 --> N24

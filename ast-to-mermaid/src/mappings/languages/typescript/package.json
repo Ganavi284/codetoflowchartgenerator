@@ -1,0 +1,21 @@
+{
+  "name": "typescript-mermaid-converter",
+  "version": "1.0.0",
+  "description": "TypeScript to Mermaid diagram converter",
+  "type": "module",
+  "main": "typescript.mjs",
+  "scripts": {
+    "test": "node test-conversion.mjs",
+    "example": "node run-example.mjs",
+    "start": "node run-example.mjs"
+  },
+  "keywords": [
+    "typescript",
+    "mermaid",
+    "ast",
+    "diagram",
+    "converter"
+  ],
+  "author": "AST to Mermaid Converter",
+  "license": "MIT"
+}

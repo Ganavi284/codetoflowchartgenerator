@@ -1,29 +1,30 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { loadParserForLanguage } from './src/parser.mjs';
+#!/usr/bin/env node
 
-// Get the directory name in ES module
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Debug conditional statements normalization
+import { readFileSync } from 'fs';
+import { extractJava } from './src/mappings/languages/java/extractors/java-extractor.mjs';
+import { normalizeJava } from './src/mappings/languages/java/normalizer/normalize-java.mjs';
 
-async function debugConditional() {
-  console.log('Debugging conditional chain AST structure...\n');
-  
-  // JavaScript conditional program
-  const jsCode = fs.readFileSync(path.join(__dirname, 'tests', 'js', 'if else if statements', 'simple-test.js'), 'utf8');
-  console.log('JavaScript Conditional Program:');
-  console.log(jsCode);
-  
-  try {
-    const { parser } = await loadParserForLanguage('js');
-    const tree = parser.parse(jsCode);
-    console.log('\nAST Structure:');
-    console.log(JSON.stringify(tree.rootNode, null, 2));
-  } catch (error) {
-    console.error('Error parsing AST:', error.message);
-  }
+console.log("=== Debugging Conditional Statements ===\n");
+
+try {
+    // Read the conditional statements Java file
+    const javaCode = readFileSync('./test-conditional.java', 'utf8');
+    console.log("Java code loaded successfully");
+    
+    // Extract AST
+    console.log("Extracting AST...");
+    const ast = extractJava(javaCode);
+    console.log("AST extracted successfully");
+    
+    // Normalize AST
+    console.log("Normalizing AST...");
+    const normalized = normalizeJava(ast);
+    console.log("AST normalized:");
+    console.log("===================");
+    console.log(JSON.stringify(normalized, null, 2));
+    
+} catch (error) {
+    console.error("Error:", error.message);
+    console.error("Stack:", error.stack);
 }
-
-// Run the debug
-debugConditional().catch(console.error);

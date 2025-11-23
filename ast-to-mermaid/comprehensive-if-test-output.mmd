@@ -1,0 +1,52 @@
+flowchart TD
+N1(["start"])
+N2["a = expression"]
+N3["b = expression"]
+N4["expression"]
+N5{"if a < b"}
+N6[/"a is less than b"/]
+N7["expression"]
+N8[/"a is now: a"/]
+N9["expression"]
+N10{"if a > b && b > 0"}
+N11[/"Complex condition true"/]
+N12[/"Complex condition false"/]
+N13["expression"]
+N14["expression"]
+N15{"if a > 0"}
+N16{"if b > 0"}
+N17[/"Both a and b are positive"/]
+N18[/"a is positive but b is not"/]
+N19["expression"]
+N20{"if a == b"}
+N21[/"a equals b"/]
+N22{"else if a > b"}
+N23[/"a is greater than b"/]
+N24[/"a is less than b"/]
+N25[/"End of program"/]
+N26(["end"])
+N1 --> N2
+N2 --> N3
+N3 --> N4
+N4 --> N5
+N5 --> N6
+N6 --> N7
+N7 --> N8
+N5 --> N9
+N9 --> N10
+N10 --> N11
+N11 --> N12
+N12 --> N13
+N10 --> N14
+N14 --> N15
+N15 --> N16
+N16 --> N17
+N17 --> N18
+N15 --> N19
+N19 --> N20
+N20 --> N21
+N21 --> N22
+N22 --> N23
+N23 --> N24
+N20 --> N25
+N25 --> N26

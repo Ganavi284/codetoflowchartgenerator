@@ -1,0 +1,21 @@
+{
+  "name": "cpp-mermaid-converter",
+  "version": "1.0.0",
+  "description": "C++ to Mermaid diagram converter",
+  "type": "module",
+  "main": "cpp.mjs",
+  "scripts": {
+    "test": "node test-conversion.mjs",
+    "example": "node run-example.mjs",
+    "start": "node run-example.mjs"
+  },
+  "keywords": [
+    "cpp",
+    "mermaid",
+    "ast",
+    "diagram",
+    "converter"
+  ],
+  "author": "AST to Mermaid Converter",
+  "license": "MIT"
+}

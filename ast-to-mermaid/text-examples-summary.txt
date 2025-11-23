@@ -1,0 +1,68 @@
+JAVA FLOWCHART TEXT HANDLING EXAMPLES
+====================================
+
+This document showcases the comprehensive text handling capabilities of the Java flowchart generator.
+
+1. SIMPLE STRING LITERALS
+-------------------------
+Input:  System.out.println("Welcome to the application");
+Output: N3[/"Welcome to the application"/]
+
+Input:  System.out.println("Application terminated successfully");
+Output: N24[/"Application terminated successfully"/]
+
+2. INPUT PROMPTS
+----------------
+Input:  System.out.print("Please enter your username: ");
+Output: N5[/"Please enter your username:"/]
+
+Input:  System.out.print("Enter your age: ");
+Output: N12[/"Enter your age:"/]
+
+3. VARIABLE CONCATENATION
+-------------------------
+Input:  System.out.println("Hello, " + username + "! Welcome.");
+Output: N10[/"Hello, username! Welcome."/]
+
+Input:  System.out.println("Loading module " + i + " of 3");
+Output: N19[/"Loading module i of 3"/]
+
+Input:  System.out.println(username + ", your final score is " + score + " points");
+Output: N22[/"username, your final score is score points"/]
+
+4. CONDITIONAL OUTPUT
+---------------------
+Input:  System.out.println("You are eligible for all features");
+Output: N16[/"You are eligible for all features"/]
+
+Input:  System.out.println("Some features are restricted");
+Output: N17[/"Some features are restricted"/]
+
+5. INPUT OPERATIONS
+-------------------
+Input:  int age = scanner.nextInt();
+Output: N13["age = read int"]
+
+Input:  String username = scanner.nextLine();
+Output: Assignment node (not shown in this example)
+
+6. SHAPE CONVENTIONS
+--------------------
+All IO operations use parallelogram shapes: [/"content"/]
+All process operations use rectangle shapes: ["content"]
+All decision operations use diamond shapes: {"condition"}
+
+7. TEXT PROCESSING FEATURES
+---------------------------
+✓ String literals extracted without quotes
+✓ Variable names preserved in concatenations
+✓ Method calls mapped to descriptive text (e.g., "read int")
+✓ Proper handling of mixed string and variable content
+✓ Consistent formatting across all IO operations
+
+8. FLOW CONTROL
+---------------
+✓ Conditional statements with Yes/No branching
+✓ Loop structures with proper iteration flow
+✓ Sequential execution of statements
+✓ Proper connection of all nodes in logical order

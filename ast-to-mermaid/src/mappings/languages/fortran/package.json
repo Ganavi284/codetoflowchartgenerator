@@ -1,0 +1,21 @@
+{
+  "name": "fortran-mermaid-converter",
+  "version": "1.0.0",
+  "description": "Fortran to Mermaid diagram converter",
+  "type": "module",
+  "main": "fortran.mjs",
+  "scripts": {
+    "test": "node test-conversion.mjs",
+    "example": "node run-example.mjs",
+    "start": "node run-example.mjs"
+  },
+  "keywords": [
+    "fortran",
+    "mermaid",
+    "ast",
+    "diagram",
+    "converter"
+  ],
+  "author": "AST to Mermaid Converter",
+  "license": "MIT"
+}

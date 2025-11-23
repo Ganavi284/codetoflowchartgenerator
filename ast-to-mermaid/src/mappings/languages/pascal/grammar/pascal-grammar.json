@@ -1,0 +1,10 @@
+{
+  "language": "pascal",
+  "version": "1.0.0",
+  "nodes": [
+    {
+      "type": "Program",
+      "properties": ["body"]
+    }
+  ]
+}
