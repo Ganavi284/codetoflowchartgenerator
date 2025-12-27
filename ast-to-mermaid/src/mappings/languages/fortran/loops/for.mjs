@@ -1,16 +1,26 @@
-/**
- * Loop statement mapping for Fortran language
- */
+import { shapes } from "../mermaid/shapes.mjs";
+import { linkNext } from "../../c/mappings/common/common.mjs";
 
-export function mapForStatement(node) {
-  // Map for loop with nested structure support
-  return {
-    type: 'for',
-    init: node.init,
-    test: node.test,
-    update: node.update,
-    body: node.body,
-    // Add unique ID for Mermaid diagram generation
-    id: `for-${Date.now()}-${Math.floor(Math.random() * 1000)}`
-  };
+// Decision shape like C/C++
+const decisionShape = (text) => shapes.rhombus.replace("{}", text);
+
+/**
+ * Map Fortran do/for loop to Mermaid flowchart nodes (C/C++ style)
+ * Creates a single decision node with header text.
+ */
+export function mapFor(node, ctx) {
+  if (!node || !ctx) return;
+
+  const forId = ctx.next();
+  const headerText = node.cond?.text || "";
+  const forText = `do (${headerText})`;
+  ctx.add(forId, decisionShape(forText));
+
+  linkNext(ctx, forId);
+
+  ctx.pendingLoops = ctx.pendingLoops || [];
+  ctx.pendingLoops.push({
+    type: "for",
+    loopId: forId,
+  });
 }

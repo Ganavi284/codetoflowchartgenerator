@@ -1,0 +1,57 @@
+flowchart TD
+
+N1(["start"])
+
+N2["sc = new Scanner(System.in)"]
+
+N3[/"System.out.print('Enter marks: ')"/]
+
+N4["marks = sc.nextInt()"]
+
+N5{"if marks >= 90"}
+
+N6[/"System.out.println('Grade A')"/]
+
+N7{"else if marks >= 75"}
+
+N8[/"System.out.println('Grade B')"/]
+
+N9{"else if marks >= 50"}
+
+N10[/"System.out.println('Grade C')"/]
+
+N11[/"System.out.println('Fail')"/]
+
+N12[/"sc.close()"/]
+
+N13(["end"])
+
+N1 --> N2
+
+N2 --> N3
+
+N3 --> N4
+
+N4 --> N5
+
+N5 -- Yes --> N6
+
+N5 -- No --> N7
+
+N7 -- Yes --> N8
+
+N7 -- No --> N9
+
+N9 -- Yes --> N10
+
+N9 -- No --> N11
+
+N6 --> N12
+
+N8 --> N12
+
+N10 --> N12
+
+N11 --> N12
+
+N12 --> N13

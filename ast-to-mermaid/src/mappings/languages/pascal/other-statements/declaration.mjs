@@ -19,5 +19,12 @@ export function mapDecl(node, ctx) {
   ctx.add(declId, processShape(declText));
   
   // Connect to previous node
-  linkNext(ctx, declId);
+  // If we're in a loop, use the loop body connection method
+  if (ctx.inLoop && typeof ctx.handleLoopBodyConnection === 'function') {
+    ctx.handleLoopBodyConnection(declId);
+  } else if (typeof ctx.handleBranchConnection === 'function' && ctx.currentIf && ctx.currentIf()) {
+    ctx.handleBranchConnection(declId);
+  } else {
+    linkNext(ctx, declId);
+  }
 }

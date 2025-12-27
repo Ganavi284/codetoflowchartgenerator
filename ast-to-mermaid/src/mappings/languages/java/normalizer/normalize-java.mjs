@@ -8,110 +8,35 @@ export function normalizeJava(ast) {
   
   // If this is a tree-sitter tree, get the root node
   const rootNode = ast.rootNode ? ast.rootNode : ast;
-  
-  // Handle wrapped code (class with main method)
-  if (rootNode.type === 'program' && rootNode.childCount >= 1) {
-    // Look for class declarations
-    for (let i = 0; i < rootNode.childCount; i++) {
-      const child = rootNode.child(i);
-      if (child && child.type === 'class_declaration') {
-        // Safely get class body
-        let classBody = null;
-        if (typeof child.childForFieldName === 'function') {
-          classBody = child.childForFieldName('body');
-        } else {
-          // Fallback: try to find body by iterating children
-          for (let j = 0; j < child.childCount; j++) {
-            const grandChild = child.child(j);
-            if (grandChild && grandChild.type === 'class_body') {
-              classBody = grandChild;
-              break;
-            }
-          }
-        }
-        
-        if (classBody && classBody.type === 'class_body') {
-          // Look for method declarations in the class body
-          for (let j = 0; j < classBody.childCount; j++) {
-            const member = classBody.child(j);
-            if (member && member.type === 'method_declaration') {
-              // Safely get method name
-              let methodName = null;
-              if (typeof member.childForFieldName === 'function') {
-                const nameNode = member.childForFieldName('name');
-                if (nameNode) {
-                  methodName = nameNode.text;
-                }
-              } else {
-                // Fallback: try to find name by iterating children
-                for (let k = 0; k < member.childCount; k++) {
-                  const nameChild = member.child(k);
-                  if (nameChild && nameChild.type === 'identifier') {
-                    methodName = nameChild.text;
-                    break;
-                  }
-                }
-              }
-              
-              // Look for the main method
-              if (methodName && methodName === 'main') {
-                // Safely get method body
-                let methodBody = null;
-                if (typeof member.childForFieldName === 'function') {
-                  methodBody = member.childForFieldName('body');
-                } else {
-                  // Fallback: try to find body by iterating children
-                  for (let k = 0; k < member.childCount; k++) {
-                    const bodyChild = member.child(k);
-                    if (bodyChild && bodyChild.type === 'block') {
-                      methodBody = bodyChild;
-                      break;
-                    }
-                  }
-                }
-                
-                if (methodBody && methodBody.type === 'block') {
-                  const statements = [];
-                  // Process statements in the method body
-                  for (let k = 0; k < methodBody.childCount; k++) {
-                    const stmt = methodBody.child(k);
-                    // Skip braces
-                    if (stmt && stmt.type !== '{' && stmt.type !== '}') {
-                      const normalized = normalizeNode(stmt);
-                      if (normalized) {
-                        statements.push(normalized);
-                      }
-                    }
-                  }
-                  return {
-                    type: 'Program',
-                    body: statements
-                  };
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  
-  // Handle direct statements (simplified Java code)
+
+  // Collect functions (including main) and any top-level executable statements
   if (rootNode.type === 'program') {
-    const statements = [];
+    const functions = [];
+    const topLevelStatements = [];
+
     for (let i = 0; i < rootNode.childCount; i++) {
       const child = rootNode.child(i);
-      if (child && child.type !== '{' && child.type !== '}') {
+      if (!child) continue;
+
+      if (child.type === 'class_declaration') {
+        const normalizedFns = normalizeClassDeclaration(child);
+        if (normalizedFns && normalizedFns.length) {
+          functions.push(...normalizedFns);
+        }
+      } else if (child.type !== '{' && child.type !== '}') {
         const normalized = normalizeNode(child);
         if (normalized) {
-          statements.push(normalized);
+          topLevelStatements.push(normalized);
         }
       }
     }
-    return {
-      type: 'Program',
-      body: statements
-    };
+
+    if (functions.length || topLevelStatements.length) {
+      return {
+        type: 'Program',
+        body: [...functions, ...topLevelStatements]
+      };
+    }
   }
   
   // Fallback
@@ -129,6 +54,99 @@ function safeChildForFieldName(node, fieldName) {
     return null;
   }
   return node.childForFieldName(fieldName);
+}
+
+/**
+ * Normalize a class declaration by extracting method declarations as Function nodes
+ * @param {Object} classNode - Tree-sitter class_declaration node
+ * @returns {Array} - Array of normalized Function nodes
+ */
+function normalizeClassDeclaration(classNode) {
+  const result = [];
+  if (!classNode) return result;
+
+  // Safely get class body
+  let classBody = null;
+  if (typeof classNode.childForFieldName === 'function') {
+    classBody = classNode.childForFieldName('body');
+  } else {
+    for (let j = 0; j < classNode.childCount; j++) {
+      const grandChild = classNode.child(j);
+      if (grandChild && grandChild.type === 'class_body') {
+        classBody = grandChild;
+        break;
+      }
+    }
+  }
+
+  if (!classBody || classBody.type !== 'class_body') return result;
+
+  for (let j = 0; j < classBody.childCount; j++) {
+    const member = classBody.child(j);
+    if (member && member.type === 'method_declaration') {
+      const fn = normalizeMethodDeclaration(member);
+      if (fn) result.push(fn);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Normalize a method_declaration to a unified Function node
+ * @param {Object} member - method_declaration node
+ * @returns {Object|null} - Normalized Function node
+ */
+function normalizeMethodDeclaration(member) {
+  if (!member) return null;
+
+  let methodName = null;
+  if (typeof member.childForFieldName === 'function') {
+    const nameNode = member.childForFieldName('name');
+    if (nameNode) methodName = nameNode.text;
+  } else {
+    for (let k = 0; k < member.childCount; k++) {
+      const nameChild = member.child(k);
+      if (nameChild && nameChild.type === 'identifier') {
+        methodName = nameChild.text;
+        break;
+      }
+    }
+  }
+
+  let methodBody = null;
+  if (typeof member.childForFieldName === 'function') {
+    methodBody = member.childForFieldName('body');
+  } else {
+    for (let k = 0; k < member.childCount; k++) {
+      const bodyChild = member.child(k);
+      if (bodyChild && bodyChild.type === 'block') {
+        methodBody = bodyChild;
+        break;
+      }
+    }
+  }
+
+  const statements = [];
+  if (methodBody && methodBody.type === 'block') {
+    for (let k = 0; k < methodBody.childCount; k++) {
+      const stmt = methodBody.child(k);
+      if (stmt && stmt.type !== '{' && stmt.type !== '}') {
+        const normalized = normalizeNode(stmt);
+        if (normalized) {
+          statements.push(normalized);
+        }
+      }
+    }
+  }
+
+  return {
+    type: 'Function',
+    name: methodName || 'anonymous',
+    body: statements,
+    params: [], // Params not used in flow mapping; can extend later
+    text: methodName ? `function ${methodName}` : 'function'
+  };
 }
 
 /**
@@ -156,7 +174,8 @@ function normalizeNode(node) {
               const grandChild = child.child(j);
               if (grandChild && grandChild.type === 'identifier') {
                 name = grandChild.text;
-              } else if (grandChild && grandChild.type !== '=' && grandChild.type !== 'identifier' && grandChild.type !== ';') {
+              } else if (grandChild && grandChild.type !== '=' && grandChild.type !== ';' && 
+                         grandChild.type !== 'identifier') {
                 value = grandChild;
               }
             }
@@ -174,6 +193,9 @@ function normalizeNode(node) {
                   } else {
                     text = `${name} = ${normalizedValue.expression.value}`;
                   }
+                } else if (normalizedValue && normalizedValue.type === 'CallExpression') {
+                  // Handle method calls in assignments
+                  text = `${name} = ${normalizedValue.text}`;
                 }
                 
                 return {
@@ -181,7 +203,7 @@ function normalizeNode(node) {
                   left: { type: 'Identifier', name: name },
                   right: normalizedValue,
                   operator: '=',
-                  text: text
+                  text: text || node.text  // Use node.text as fallback
                 };
               } else {
                 // If no value, create a declaration (we'll process this as an assignment with user input)
@@ -190,14 +212,18 @@ function normalizeNode(node) {
                   left: { type: 'Identifier', name: name },
                   right: { type: 'Identifier', name: 'input' },
                   operator: '=',
-                  text: `${name} = input`
+                  text: `${name} = input` || node.text  // Use node.text as fallback
                 };
               }
             }
           }
         }
       }
-      return null;
+      return {
+        type: 'ExpressionStatement',
+        expression: { type: 'Literal', value: node.text, raw: node.text },
+        text: node.text  // Return the full declaration text
+      };
       
     case 'assignment_expression':
       let left = null;
@@ -227,7 +253,8 @@ function normalizeNode(node) {
         type: 'AssignmentExpression',
         left: left,
         right: right,
-        operator: operator
+        operator: operator,
+        text: node.text  // Add the original text for display purposes
       };
       
     case 'binary_expression':
@@ -263,7 +290,7 @@ function normalizeNode(node) {
         left: binLeft,
         right: binRight,
         operator: binOperator,
-        text: node.text  // Add the original text for display purposes
+        text: node.text  // Use the original text which contains the full expression
       };
       
     case 'if_statement':
@@ -307,15 +334,29 @@ function normalizeNode(node) {
         }
       }
       
+      // Extract the condition text more specifically
+      let conditionText = null;
+      if (test && test.text) {
+        conditionText = test.text;
+      } else {
+        // Extract condition from the original node text by finding what's between parentheses after 'if'
+        const match = node.text.match(/if\s*\(([^)]+)\)/);
+        if (match && match[1]) {
+          conditionText = match[1].trim();
+        } else {
+          conditionText = node.text;
+        }
+      }
+      
       return {
         type: 'IfStatement',
         test: test,
         consequent: consequent,
         alternate: alternate,
-        text: node.text  // Add the original text for display purposes
+        text: conditionText  // Use the extracted condition text
       };
       
-    case 'switch_statement':
+    case 'switch_expression':
       let discriminant = null;
       const cases = [];
       
@@ -324,36 +365,16 @@ function normalizeNode(node) {
         const body = safeChildForFieldName(node, 'body');
         if (body && body.type === 'switch_block') {
           // Process switch block to extract cases and their statements
-          let currentCase = null;
+          // The switch block contains switch_block_statement_group nodes
           for (let i = 0; i < body.childCount; i++) {
             const child = body.child(i);
-            if (child.type === 'switch_label') {
-              // Process switch label
-              const normalizedLabel = normalizeNode(child);
-              if (normalizedLabel) {
-                // If we already have a case, add it to the cases array
-                if (currentCase) {
-                  cases.push(currentCase);
-                }
-                // Start a new case
-                currentCase = normalizedLabel;
-              }
-            } else if (child.type !== '{' && child.type !== '}' && child.type !== ':' && child.type !== 'case' && child.type !== 'default') {
-              // This is a statement that belongs to the current case
-              if (currentCase) {
-                if (!currentCase.consequent) {
-                  currentCase.consequent = [];
-                }
-                const normalizedStmt = normalizeNode(child);
-                if (normalizedStmt) {
-                  currentCase.consequent.push(normalizedStmt);
-                }
+            if (child.type === 'switch_block_statement_group') {
+              // Process the switch block statement group which contains both label and statements
+              const normalizedCase = normalizeNode(child);
+              if (normalizedCase) {
+                cases.push(normalizedCase);
               }
             }
-          }
-          // Don't forget to add the last case
-          if (currentCase) {
-            cases.push(currentCase);
           }
         }
       } else {
@@ -365,36 +386,15 @@ function normalizeNode(node) {
             discriminant = normalizeNode(child.firstNamedChild);
           } else if (child && child.type === 'switch_block') {
             // Process switch block to extract cases and their statements
-            let currentCase = null;
             for (let j = 0; j < child.childCount; j++) {
               const blockChild = child.child(j);
-              if (blockChild.type === 'switch_label') {
-                // Process switch label
-                const normalizedLabel = normalizeNode(blockChild);
-                if (normalizedLabel) {
-                  // If we already have a case, add it to the cases array
-                  if (currentCase) {
-                    cases.push(currentCase);
-                  }
-                  // Start a new case
-                  currentCase = normalizedLabel;
-                }
-              } else if (blockChild.type !== '{' && blockChild.type !== '}' && blockChild.type !== ':' && blockChild.type !== 'case' && blockChild.type !== 'default') {
-                // This is a statement that belongs to the current case
-                if (currentCase) {
-                  if (!currentCase.consequent) {
-                    currentCase.consequent = [];
-                  }
-                  const normalizedStmt = normalizeNode(blockChild);
-                  if (normalizedStmt) {
-                    currentCase.consequent.push(normalizedStmt);
-                  }
+              if (blockChild.type === 'switch_block_statement_group') {
+                // Process the switch block statement group which contains both label and statements
+                const normalizedCase = normalizeNode(blockChild);
+                if (normalizedCase) {
+                  cases.push(normalizedCase);
                 }
               }
-            }
-            // Don't forget to add the last case
-            if (currentCase) {
-              cases.push(currentCase);
             }
           }
         }
@@ -443,6 +443,35 @@ function normalizeNode(node) {
         };
       }
       
+    case 'switch_block_statement_group':
+      // This node contains both switch labels and statements
+      // Process switch label and its associated statements
+      let currentCase = null;
+      
+      for (let i = 0; i < node.childCount; i++) {
+        const child = node.child(i);
+        if (child && child.type === 'switch_label') {
+          // Process switch label
+          const normalizedLabel = normalizeNode(child);
+          if (normalizedLabel) {
+            currentCase = normalizedLabel;
+          }
+        } else if (child && child.type !== '{' && child.type !== '}' && child.type !== ':') {
+          // This is a statement that belongs to the current case
+          if (currentCase) {
+            if (!currentCase.consequent) {
+              currentCase.consequent = [];
+            }
+            const normalizedStmt = normalizeNode(child);
+            if (normalizedStmt) {
+              currentCase.consequent.push(normalizedStmt);
+            }
+          }
+        }
+      }
+      
+      return currentCase;
+      
     case 'for_statement':
       let init = null;
       let condition = null;
@@ -460,6 +489,12 @@ function normalizeNode(node) {
           const child = node.child(i);
           if (child && child.type === 'local_variable_declaration') {
             init = normalizeNode(child);
+          } else if (child && child.type === 'assignment_expression') {
+            // Handle assignment expressions in for loop initialization
+            init = normalizeNode(child);
+          } else if (child && child.type === 'identifier') {
+            // Handle identifier in initialization
+            init = normalizeNode(child);
           } else if (child && child.type === 'binary_expression') {
             condition = normalizeNode(child);
           } else if (child && child.type === 'update_expression') {
@@ -467,6 +502,14 @@ function normalizeNode(node) {
           } else if (child && child.type === 'block') {
             forBody = normalizeNode(child);
           }
+        }
+      }
+      
+      // If init is still null, try to extract it from the full node text
+      if (!init && node.text) {
+        const match = node.text.match(/for\s*\(([^;]*);[^;]*;[^;]*\)/);
+        if (match && match[1]) {
+          init = { type: 'ExpressionStatement', expression: { type: 'Literal', value: match[1].trim(), raw: match[1].trim() }, text: match[1].trim() };
         }
       }
       
@@ -558,13 +601,40 @@ function normalizeNode(node) {
       
       return {
         type: 'ReturnStatement',
-        argument: argument
+        argument: argument,
+        text: node.text  // Preserve the original text
       };
       
     case 'expression_statement':
+      // Try to get the expression from the first named child
+      const expressionNode = node.firstNamedChild;
+      if (expressionNode) {
+        const normalizedExpression = normalizeNode(expressionNode);
+        return {
+          type: 'ExpressionStatement',
+          expression: normalizedExpression,
+          text: node.text  // Include the original text
+        };
+      }
+      // Fallback: try to iterate through children
+      for (let i = 0; i < node.childCount; i++) {
+        const child = node.child(i);
+        if (child && child.type !== ';') {
+          const normalizedExpression = normalizeNode(child);
+          if (normalizedExpression) {
+            return {
+              type: 'ExpressionStatement',
+              expression: normalizedExpression,
+              text: node.text  // Include the original text
+            };
+          }
+        }
+      }
+      // If no expression found, return with text
       return {
         type: 'ExpressionStatement',
-        expression: normalizeNode(node.firstNamedChild)
+        expression: { type: 'Literal', value: node.text, raw: node.text },
+        text: node.text
       };
       
     case 'update_expression':
@@ -575,7 +645,8 @@ function normalizeNode(node) {
         argument: normalizeNode(node.childForFieldName ? 
                                node.childForFieldName('argument') : 
                                (node.firstNamedChild || node.lastNamedChild)),
-        prefix: node.child(0).type === '++' || node.child(0).type === '--'
+        prefix: node.child(0).type === '++' || node.child(0).type === '--',
+        text: node.text  // Include the original text
       };
       
     case 'method_invocation':
@@ -617,23 +688,26 @@ function normalizeNode(node) {
         }
       }
       
+      // If we didn't find a name but have an object, the object might be the name (for direct method calls)
+      if (!name && object) {
+        name = object;
+        object = null;
+      }
+      
       if (name) {
         // Handle System.out.println/printf calls
         if (object && object.includes('System.out') && 
             (name === 'println' || name === 'print' || name === 'printf')) {
-          // Create a more descriptive text for the print statement
-          let printText = name;
-          if (args.length > 0) {
-            printText += " " + args.map(arg => {
-              if (arg && arg.type === 'Literal') {
-                return arg.value;
-              } else if (arg && arg.type === 'Identifier') {
-                return arg.name;
-              } else {
-                return "expression";
-              }
-            }).join(", ");
-          }
+          // Create the full System.out.println text
+          let printText = `System.out.${name}(${args.map(arg => {
+            if (arg && arg.type === 'Literal') {
+              return arg.value;
+            } else if (arg && arg.type === 'Identifier') {
+              return arg.name;
+            } else {
+              return "expression";
+            }
+          }).join(", ")})`;
           
           return {
             type: 'CallExpression',
@@ -672,6 +746,24 @@ function normalizeNode(node) {
             };
           }
         }
+        
+        // Handle general method calls
+        return {
+          type: 'CallExpression',
+          callee: {
+            name: name
+          },
+          arguments: args,
+          text: `${name}(${args.map(arg => {
+            if (arg && arg.type === 'Literal') {
+              return arg.value;
+            } else if (arg && arg.type === 'Identifier') {
+              return arg.name;
+            } else {
+              return "...";
+            }
+          }).join(", ")})`
+        };
       }
       return null;
       

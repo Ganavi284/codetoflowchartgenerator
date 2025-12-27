@@ -1,0 +1,28 @@
+flowchart TD
+  START(["start"])
+  N1["var day: integer"]
+  N2[/"write('Enter day number (1-7): ')"/]
+  N3[/"readln(day)"/]
+  N4{"case day"}
+  N5["case 1: writeln('Sunday')"]
+  N6["case 2: writeln('Monday')"]
+  N7["case 3: writeln('Tuesday')"]
+  N8["case 4: writeln('Wednesday')"]
+  N9["case 5: writeln('Thursday')"]
+  N10["case 6: writeln('Friday')"]
+  N11["case 7: writeln('Saturday')"]
+  N12["else: writeln('Invalid day')"]
+  END(["end"])
+  START --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 --> N4
+  N4 --> N5
+  N4 --> N6
+  N4 --> N7
+  N4 --> N8
+  N4 --> N9
+  N4 --> N10
+  N4 --> N11
+  N4 --> N12
+  N12 --> END

@@ -4,7 +4,7 @@ import fs from 'fs';
 console.log('Pascal Conditional Statements to Mermaid Converter\n');
 
 // Read the Pascal test file
-const sourceFile = 'pascal-conditional-demo.pas';
+const sourceFile = '../complex-statements-in-case.pas';
 console.log(`Reading Pascal file: ${sourceFile}`);
 
 try {
@@ -21,7 +21,7 @@ try {
   console.log(mermaidDiagram);
   
   // Save to output file
-  const outputFile = 'pascal-conditional-demo-output.mmd';
+  const outputFile = 'complex-statements-in-case-output.mmd';
   fs.writeFileSync(outputFile, mermaidDiagram);
   console.log(`\nMermaid diagram saved to: ${outputFile}`);
   

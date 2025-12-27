@@ -1,0 +1,15 @@
+flowchart TD
+N1(["start"])
+N2[/"write('Enter a number: ')"/]
+N3[/"readln(n)"/]
+N4{"if n >= 0"}
+N5[/"writeln('Number is Positive')"/]
+N6[/"writeln('Number is Negative')"/]
+N7(["end"])
+N1 --> N2
+N2 --> N3
+N3 --> N4
+N4 -- "Yes" --> N5
+N4 -- "No" --> N6
+N5 --> N7
+N6 --> N7

@@ -18,10 +18,12 @@ export function normalizeTypescriptAst(node) {
     case "function_declaration":
       // Check if this is the main function
       const functionName = node.child(1)?.text || "unknown";
+      // Find the statement block (function body) among the children
+      const bodyNode = node.children ? node.children.find(child => child.type === 'statement_block') : null;
       return {
         type: "Function",
         name: functionName,
-        body: node.children ? node.children.map(normalizeTypescriptAst).filter(Boolean) : []
+        body: bodyNode ? normalizeTypescriptAst(bodyNode).body || [] : []
       };
       
     case "statement_block":
@@ -49,23 +51,48 @@ export function normalizeTypescriptAst(node) {
     case "for_statement":
       return {
         type: "For",
-        init: normalizeTypescriptAst(node.child(2)), // init is typically at index 2
-        cond: normalizeTypescriptAst(node.child(4)), // condition is typically at index 4
-        update: normalizeTypescriptAst(node.child(6)), // update is typically at index 6
-        body: normalizeTypescriptAst(node.child(8)) // body is typically at index 8
+        init: normalizeTypescriptAst(node.child(2)), // init is at index 2
+        test: normalizeTypescriptAst(node.child(3)), // test is at index 3
+        update: normalizeTypescriptAst(node.child(5)), // update is at index 5
+        body: normalizeTypescriptAst(node.child(7)) // body is at index 7
       };
       
     case "while_statement":
+      // For a while loop: while (condition) body
+      // Children are: [while, parenthesized_expression, body]
       return {
         type: "While",
-        cond: normalizeTypescriptAst(node.child(2)), // condition is typically at index 2
-        body: normalizeTypescriptAst(node.child(4)) // body is typically at index 4
+        test: node.child(1) ? normalizeTypescriptAst(node.child(1)) : null, // condition in parenthesized expression
+        body: normalizeTypescriptAst(node.child(2)) // body is at index 2
+      };
+      
+    case "do_statement":
+      // For a do-while loop: do body while (condition) ;
+      // Children are: [do, body, while, parenthesized_expression, ;]
+      return {
+        type: "DoWhile",
+        body: normalizeTypescriptAst(node.child(1)), // body is at index 1
+        test: node.child(3) ? normalizeTypescriptAst(node.child(3)) : null // condition in parenthesized expression
       };
       
     case "expression_statement":
       return normalizeTypescriptAst(node.child(0)); // Process the actual expression
       
     case "assignment_expression":
+      // Check if this assignment contains a function call
+      if (node.children) {
+        // Look for call expressions in the assignment
+        for (const child of node.children) {
+          if (child.type === 'call_expression') {
+            // This assignment contains a function call
+            return {
+              type: "FunctionCall",
+              text: node.text,
+              callee: normalizeTypescriptAst(child)
+            };
+          }
+        }
+      }
       return {
         type: "Assign",
         text: node.text

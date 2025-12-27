@@ -39,7 +39,7 @@ export const unloadLLM = async (): Promise<void> => {
     }
 };
 
-export const convertCodeToMermaid = async (code: string, language?: 'js' | 'ts' | 'python' | 'java' | 'c' | 'cpp' | 'auto'): Promise<string> => {
+export const convertCodeToMermaid = async (code: string, language?: 'js' | 'ts' | 'python' | 'java' | 'c' | 'cpp' | 'pascal' | 'auto'): Promise<string> => {
     // try main backend first, but fall back on network errors or non-OK
     try {
         const response = await fetch(`${API_BASE_URL}/convert`, {
@@ -73,7 +73,7 @@ export const convertCodeToMermaid = async (code: string, language?: 'js' | 'ts' 
 };
 
 // Lightweight client-side detector mirroring backend for display purposes only
-export const detectLanguageLocal = (code: string): 'js' | 'ts' | 'python' | 'java' | 'c' | 'cpp' | 'no language detected' => {
+export const detectLanguageLocal = (code: string): 'js' | 'ts' | 'python' | 'java' | 'c' | 'cpp' | 'pascal' | 'no language detected' => {
     const src = String(code || '');
     const trimmed = src.trim();
 
@@ -102,6 +102,9 @@ export const detectLanguageLocal = (code: string): 'js' | 'ts' | 'python' | 'jav
 
     // C++ detection - look for C++ specific markers without #include
     if (/\bstd::|cout\s*<<|cin\s*>>|\bclass\s+\w+|namespace\b/.test(trimmed)) return 'cpp';
+
+    // Pascal detection - look for Pascal-specific keywords
+    if (/program\s+\w+|begin|end\.|writeln\s*\(|readln\s*\(|if\s+.*\s+then|case\s+.*\s+of/i.test(trimmed)) return 'pascal';
 
     // TypeScript vs JavaScript
     // TypeScript type annotations / interfaces / enums

@@ -19,7 +19,14 @@ export function mapBreakStatement(node, ctx) {
   ctx.add(breakId, processShape(breakText));
   
   // Connect break statement to flowchart
-  linkNext(ctx, breakId);
+  // Check if we're in a branch context and handle connection appropriately
+  if (ctx.currentIf && ctx.currentIf() && ctx.currentIf().activeBranch) {
+    // We're inside a conditional branch, use branch connection logic
+    ctx.handleBranchConnection(breakId);
+  } else {
+    // Not in a branch, use normal sequential connection
+    linkNext(ctx, breakId);
+  }
   
   // If we're in a switch statement, store this break node for later connection
   if (ctx.currentSwitchId && ctx.switchEndNodes && ctx.switchEndNodes.length > 0) {

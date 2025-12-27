@@ -40,6 +40,18 @@ export function mapFor(node, ctx) {
       iterText = node.iter;
     } else if (node.iter.text) {
       iterText = node.iter.text;
+    } else if (node.iter.func && node.iter.func.id === 'range') {
+      // Handle range function specifically
+      const args = node.iter.args || [];
+      if (args.length === 1) {
+        iterText = `range(${args[0].value || args[0]})`;
+      } else if (args.length === 2) {
+        iterText = `range(${args[0].value || args[0]}, ${args[1].value || args[1]})`;
+      } else if (args.length === 3) {
+        iterText = `range(${args[0].value || args[0]}, ${args[1].value || args[1]}, ${args[2].value || args[2]})`;
+      } else {
+        iterText = 'range(...)';
+      }
     } else if (node.iter.type) {
       // For complex iter nodes, use their text representation
       iterText = node.iter.text || "iterator";
@@ -61,6 +73,12 @@ export function mapFor(node, ctx) {
     type: 'for',
     loopId: forId
   });
+  
+  // Register as a conditional node similar to if statements
+  // This allows the context to handle Yes/No branches properly
+  if (typeof ctx.registerIf === 'function') {
+    ctx.registerIf(forId, false); // for loops don't have an else part
+  }
   
   // Set loop context
   ctx.inLoop = true;

@@ -1,0 +1,22 @@
+flowchart TD
+  START(["start"])
+  N1["var n: integer"]
+  N2[/"write('Enter a number: ')"/]
+  N3[/"readln(n)"/]
+  N4{"if n > 0"}
+  N5[/"writeln('Positive number');; writeln('Value = ', n);"/]
+  N6{"if n < 0"}
+  N7[/"writeln('Negative number');; writeln('Value = ', n);"/]
+  N8[/"writeln('Zero')"/]
+  END(["end"])
+  START --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 --> N4
+  N4 -- Yes --> N5
+  N4 -- No --> N6
+  N6 -- Yes --> N7
+  N7 --> N8
+  N6 -- No --> N8
+  N5 --> N8
+  N8 --> END

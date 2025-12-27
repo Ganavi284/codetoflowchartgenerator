@@ -1,23 +1,20 @@
-import { extractFortran } from './src/mappings/languages/fortran/extractors/fortran-extractor.mjs';
-import { normalizeFortran } from './src/mappings/languages/fortran/normalizer/normalize-fortran.mjs';
-import fs from 'fs';
-const sourceCode = fs.readFileSync('../test-fortran-switch.f90', 'utf8');
+import { generateFlowchart } from './src/mappings/languages/fortran/pipeline/flow.mjs';
 
-console.log('Source code:');
-console.log(sourceCode);
-console.log('\n---\n');
+const testCode = `program test
+    integer :: x = 5
+    if (x > 0) then
+        print *, 'positive'
+    else
+        print *, 'not positive'
+    end if
+end program test
+`;
 
 try {
-  // Extract AST
-  const ast = extractFortran(sourceCode);
-  console.log('Raw AST:');
-  console.log(JSON.stringify(ast, null, 2));
-  console.log('\n---\n');
-  
-  // Normalize AST
-  const normalized = normalizeFortran(ast, sourceCode);
-  console.log('Normalized AST:');
-  console.log(JSON.stringify(normalized, null, 2));
-} catch (error) {
-  console.error('Error:', error);
+  const result = generateFlowchart(testCode);
+  console.log('Flowchart generated:');
+  console.log(result);
+} catch (e) {
+  console.error('Error:', e.message);
+  console.error('Stack:', e.stack);
 }

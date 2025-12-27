@@ -1,5 +1,5 @@
-import { process } from "../mappings/common/common.mjs";
-import { linkNext } from "../mappings/common/common.mjs";
+import { process } from "../../pascal/mappings/common/common.mjs";
+import { linkNext } from "../../pascal/mappings/common/common.mjs";
 
 export function mapAssign(node, ctx) {
   // If we're in a loop, defer this statement until after control flow convergence

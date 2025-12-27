@@ -10,11 +10,21 @@ import { mapRepeat } from './loops/repeat.mjs';
 import { mapDoWhile } from './loops/do-while.mjs';
 import { shapes } from './mermaid/shapes.mjs';
 
+// Import IO handler
+import { mapIO } from './io/io.mjs';
+
+// Import new conditional handlers
+import { mapIfElseStatement } from './conditional/if-else.mjs';
+import { mapIfElseIf } from './conditional/if-elseif/if-elseif.mjs';
+
 // Helper function to create process shape with text
 const processShape = (text) => shapes.process.replace('{}', text);
 
 // Helper function to create IO shape with text
 const ioShape = (text) => shapes.io.replace('{}', text);
+
+// Helper function to create decision shape with text
+const decisionShape = (text) => shapes.decision.replace('{}', text);
 
 /**
  * Map a Pascal AST node to Mermaid diagram elements
@@ -26,100 +36,106 @@ export function mapNodePascal(node, ctx) {
 
   // Handle different node types
   switch (node.type) {
-    case 'if':
-    case 'ifElse':
-      // This is a raw AST node from tree-sitter, we need to map it properly
-      mapIf({
-        type: 'If',
-        cond: { text: getConditionText(node) },
-        then: getChildByType(node, 'statement'),
-        else: hasElseClause(node) ? getChildByType(node, 'statement') : null
-      }, ctx);
+    case 'If':
+      // This is a normalized If node
+      mapIf(node, ctx);
       break;
       
-    case 'for':
+    case 'IfElse':
+      // This is a normalized If-Else node
+      mapIfElseStatement(node, ctx);
+      break;
+      
+    case 'ifElseIf':
+      // This is a normalized If-Else-If node
+      mapIfElseIf(node, ctx);
+      break;
+      
+    case 'For':
       // Handle for loop
-      mapFor({
-        type: 'For',
-        start: { text: getForStartText(node) },
-        direction: { text: getForDirection(node) },
-        end: { text: getForEndText(node) }
-      }, ctx);
+      mapFor(node, ctx);
       break;
       
-    case 'while':
+    case 'While':
       // Handle while loop
-      mapWhile({
-        type: 'While',
-        cond: { text: getConditionText(node) }
-      }, ctx);
+      mapWhile(node, ctx);
       break;
       
-    case 'repeat':
+    case 'Repeat':
       // Handle repeat-until loop
-      mapRepeat({
-        type: 'Repeat',
-        cond: { text: getConditionText(node) }
-      }, ctx);
+      mapRepeat(node, ctx);
       break;
       
-    case 'do':
-      // Handle do-while loop (if exists in Pascal)
-      mapDoWhile({
-        type: 'DoWhile',
-        cond: { text: getConditionText(node) }
-      }, ctx);
+    case 'DoWhile':
+      // Handle do-while loop
+      mapDoWhile(node, ctx);
       break;
       
-    case 'case_statement':
-      mapCase({
-        type: 'Case',
-        cond: { text: getConditionText(node) }
-      }, ctx);
+    case 'Case':
+      mapCase(node, ctx);
       break;
       
-    case 'case_item':
-      mapCaseOption({
-        type: 'CaseOption',
-        value: getNodeText(getChildByFieldName(node, 'value'))
-      }, ctx);
+    case 'CaseOption':
+      mapCaseOption(node, ctx);
       break;
       
-    case 'else_clause':
-      mapElseCase({
-        type: 'ElseCase'
-      }, ctx);
+    case 'ElseCase':
+      mapElseCase(node, ctx);
       break;
       
-    case 'exprCall':
-      // Handle procedure calls like writeln
-      const callId = ctx.next();
-      const procName = getNodeText(getChildByType(node, 'identifier'));
-      const argsNode = getChildByType(node, 'exprArgs');
-      const args = argsNode ? getNodeText(argsNode) : '';
-      
-      // Use IO shape for input/output operations like writeln, readln, etc.
-      // Use process shape for other procedure calls
-      const isIOOperation = procName === 'writeln' || procName === 'write' || 
-                           procName === 'readln' || procName === 'read';
-      const shape = isIOOperation ? ioShape(`${procName}(${args})`) : processShape(`${procName}(${args})`);
-      
-      ctx.add(callId, shape);
+    case 'Decl':
+      // Handle variable declarations
+      const declId = ctx.next();
+      const declText = node.text || "var declaration";
+      ctx.add(declId, processShape(declText));
       
       // Link to previous node
       if (ctx.last) {
-        ctx.addEdge(ctx.last, callId);
+        ctx.addEdge(ctx.last, declId);
       }
-      ctx.last = callId;
+      ctx.last = declId;
       break;
       
-    case 'statement':
-      // Handle statement nodes by processing their children
-      // This is a container node, so we don't create a node for it
-      // but we need to process its children
-      // We don't break here, we let it fall through to default to process children
-      // But we also want to ensure we process the children properly
-      // Since this is handled by the walker, we don't need to do anything here
+    case 'IO':
+      // Handle IO operations
+      mapIO(node, ctx);
+      break;
+      
+    case 'Expr':
+      // Handle expressions
+      const exprId = ctx.next();
+      const exprText = node.text || "expression";
+      ctx.add(exprId, processShape(exprText));
+      
+      // Link to previous node
+      if (ctx.last) {
+        ctx.addEdge(ctx.last, exprId);
+      }
+      ctx.last = exprId;
+      break;
+      
+    case 'Assign':
+      // Handle assignments
+      const assignId = ctx.next();
+      const assignText = node.text || "assignment";
+      ctx.add(assignId, processShape(assignText));
+      
+      // Link to previous node
+      if (ctx.last) {
+        ctx.addEdge(ctx.last, assignId);
+      }
+      ctx.last = assignId;
+      break;
+      
+    case 'Block':
+      // Handle block nodes by processing their body
+      if (node.body && Array.isArray(node.body)) {
+        node.body.forEach(statement => {
+          if (ctx && typeof ctx.handle === 'function') {
+            ctx.handle(statement);
+          }
+        });
+      }
       break;
       
     default:

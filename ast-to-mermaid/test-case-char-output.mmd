@@ -1,0 +1,16 @@
+flowchart TD
+  START(["start"])
+  N1["var ch: char"]
+  N2[/"write('Enter a character: ')"/]
+  N3[/"readln(ch)"/]
+  N4{"case ch"}
+  N5["case 'a', 'e', 'i', 'o', 'u': writeln('Vowel')"]
+  N6["else: writeln('Consonant')"]
+  END(["end"])
+  START --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 --> N4
+  N4 --> N5
+  N4 --> N6
+  N6 --> END

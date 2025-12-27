@@ -1,0 +1,66 @@
+flowchart TD
+  START(["start"])
+  N1["var x, y: integer"]
+  N2{"if x > 0"}
+  N3[/"writeln('Positive number')"/]
+  N4{"if y < 10"}
+  N5[/"writeln('Small number')"/]
+  N6[/"writeln('Large number')"/]
+  N7{"if x > 0"}
+  N8["begin"]
+  N9{"if y > 0"}
+  N10[/"writeln('Both positive')"/]
+  N11[/"writeln('Only x is positive')"/]
+  N12{"if x < 0"}
+  N13[/"writeln('Negative')"/]
+  N14["if x = 0 then writeln('Zero')"]
+  N15[/"writeln('Positive')"/]
+  N16{"case x"}
+  N17["case 1:"]
+  N18[/"writeln('One')"/]
+  N19["case 2:"]
+  N20[/"writeln('Two')"/]
+  N21["case 3:"]
+  N22[/"writeln('Three'); else writeln('Other number')"/]
+  N23{"case y"}
+  N24["case 1..10:"]
+  N25[/"writeln('Small range')"/]
+  N26["case 11..20:"]
+  N27[/"writeln('Medium range'); else writeln('Large number')"/]
+  END(["end"])
+  START --> N1
+  N1 --> N2
+  N2 -- Yes --> N3
+  N3 --> N4
+  N2 -- No --> N4
+  N4 -- Yes --> N5
+  N4 -- No --> N6
+  N5 --> N7
+  N6 --> N7
+  N7 -- Yes --> N8
+  N8 --> N9
+  N7 -- No --> N9
+  N9 -- Yes --> N10
+  N9 -- No --> N11
+  N10 --> N12
+  N11 --> N12
+  N12 -- Yes --> N13
+  N12 -- No --> N14
+  N13 --> N15
+  N14 --> N15
+  N15 --> N16
+  N16 --> N17
+  N17 --> N18
+  N16 --> N19
+  N19 --> N20
+  N16 --> N21
+  N21 --> N22
+  N22 --> N23
+  N23 --> N24
+  N24 --> N25
+  N23 --> N26
+  N26 --> N27
+  N18 --> N23
+  N20 --> N23
+  N25 --> END
+  N27 --> END

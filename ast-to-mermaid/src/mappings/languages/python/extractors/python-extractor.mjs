@@ -1,3 +1,7 @@
+/**
+ * Python extractor using Tree-sitter
+ */
+
 import Parser from 'tree-sitter';
 import Python from 'tree-sitter-python';
 

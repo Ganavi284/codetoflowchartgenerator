@@ -13,9 +13,17 @@ export function extractJava(sourceCode) {
     
     // Try to parse the code as-is first
     let ast = parser.parse(sourceCode);
+
+    // Determine parse health in a version-tolerant way (hasError() vs hasError)
+    const hasParseError = (tree) => {
+      if (!tree || !tree.rootNode) return true;
+      const { rootNode } = tree;
+      if (typeof rootNode.hasError === "function") return rootNode.hasError();
+      return !!rootNode.hasError;
+    };
     
     // If the parse tree is empty or has errors, try wrapping in a class
-    if (!ast || !ast.rootNode || ast.rootNode.hasError()) {
+    if (hasParseError(ast)) {
       // Check if this is already a complete Java file with class
       if (!sourceCode.includes('class ') && !sourceCode.includes('public ')) {
         // Wrap simple statements in a class and method for parsing

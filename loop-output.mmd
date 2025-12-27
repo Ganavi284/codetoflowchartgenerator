@@ -1,0 +1,10 @@
+flowchart TD
+N1["i := 1"]
+N2[/"writeln('Count: ', i)"/]
+N3["i := i + 1"]
+N4[/"writeln('Done')"/]
+N5(["end"])
+N1 --> N2
+N2 --> N3
+N3 --> N4
+N4 --> N5

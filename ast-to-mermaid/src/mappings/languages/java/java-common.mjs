@@ -3,14 +3,14 @@
  */
 
 // Import specific mapping functions
-import { mapMethodDeclaration } from './functions/function.mjs';
+import { mapFunctionDeclaration } from './functions/function.mjs';
 import { mapIfStatement } from './conditional/if.mjs';
 import { mapIfElseStatement } from './conditional/if-else/if-else.mjs';
 import { mapIfElseIfStatement } from './conditional/if-elseif/if-elseif.mjs';
 import { mapForStatement } from './loops/for.mjs';
 import { mapWhileStatement } from './loops/while/while.mjs';
 import { mapDoWhileStatement } from './loops/do-while/do-while.mjs';
-import { mapSwitchStatement, mapCase, mapDefault } from './conditional/switch/switch.mjs';
+import { mapSwitchStatement, mapCase, mapDefault, completeSwitch } from './conditional/switch/switch.mjs';
 import { mapSystemOutPrint } from './io/printf.mjs';
 import { mapIoStatement } from './io/io.mjs';
 import { mapBreakStatement } from './other-statements/break.mjs';
@@ -23,7 +23,7 @@ export function mapJavaNode(node) {
   // Map Java node based on its type
   switch (node.type) {
     case 'MethodDeclaration':
-      return mapMethodDeclaration(node);
+      return mapFunctionDeclaration(node);
     case 'IfStatement':
       return mapIfStatement(node);
     case 'ForStatement':

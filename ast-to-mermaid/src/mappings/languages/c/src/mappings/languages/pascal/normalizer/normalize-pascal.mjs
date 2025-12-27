@@ -25,7 +25,30 @@ export function normalizePascal(node) {
       };
       
     case "ifElse":
+      // Simple if statement (no else)
+      return {
+        type: "If",
+        cond: extractConditionFromIf(node),
+        then: extractThenBranch(node),
+        else: null
+      };
+      
+    case "ifElse":
       // If-else statement
+      // Check if the else branch contains another if statement (else-if chain)
+      if (node.else && node.else.body && node.else.body.length > 0) {
+        const elseBody = node.else.body[0];
+        if (elseBody.type === "if") {
+          // This is an if-else-if chain
+          return {
+            type: "ifElseIf",
+            cond: extractConditionFromIf(node),
+            then: extractThenBranch(node),
+            else: normalizePascal(elseBody)
+          };
+        }
+      }
+      
       return {
         type: "If",
         cond: extractConditionFromIf(node),
@@ -58,11 +81,11 @@ export function normalizePascal(node) {
       
     case "CallExpression":
     case "exprCall":
-      // Handle writeln statements
-      if (node.text && node.text.startsWith('writeln')) {
+      // Handle writeln, write, readln, read statements
+      if (node.text && (node.text.startsWith('writeln') || node.text.startsWith('write') || node.text.startsWith('readln') || node.text.startsWith('read'))) {
         return {
           type: "IO",
-          text: node.text.replace('writeln', 'printf')
+          text: node.text
         };
       }
       return {
@@ -77,6 +100,7 @@ export function normalizePascal(node) {
       };
       
     case "VariableDeclaration":
+    case "declVar":
       return {
         type: "Decl",
         text: node.text
@@ -84,6 +108,7 @@ export function normalizePascal(node) {
       
     case "BlockStatement":
     case "block":
+    case "Block":
       return {
         type: "Block",
         body: node.body ? node.body.map(normalizePascal).filter(Boolean) : []
@@ -222,25 +247,43 @@ export function normalizePascal(node) {
 
 // Helper function to extract condition from if statements
 function extractConditionFromIf(ifNode) {
+  // If we have source code and condition text directly (from fallback parser)
+  if (ifNode.cond && ifNode.cond.text) {
+    return { text: ifNode.cond.text };
+  }
+  
   // If we have source code, extract the actual condition from it
   if (ifNode.sourceCode) {
     try {
-      // Parse the start position to get line and column
-      const startPos = ifNode.start.split(',').map(Number);
-      const lineIndex = startPos[0] - 1; // Convert to 0-based index
-      
-      // Get the lines of source code
-      const lines = ifNode.sourceCode.split('\n');
-      
-      // Search for the actual if statement in the vicinity of the reported start position
-      // Look in a few lines before and after the reported position
-      for (let i = Math.max(0, lineIndex - 1); i < Math.min(lines.length, lineIndex + 5); i++) {
-        const line = lines[i];
+      // If we have start position, use it
+      if (ifNode.start) {
+        // Parse the start position to get line and column
+        const startPos = ifNode.start.split(',').map(Number);
+        const lineIndex = startPos[0] - 1; // Convert to 0-based index
         
-        // Extract condition between "if" and "then"
-        const conditionMatch = line.match(/if\s+(.*?)\s+then/i);
-        if (conditionMatch) {
-          return { text: conditionMatch[1].trim() };
+        // Get the lines of source code
+        const lines = ifNode.sourceCode.split('\n');
+        
+        // Search for the actual if statement in the vicinity of the reported start position
+        // Look in a few lines before and after the reported position
+        for (let i = Math.max(0, lineIndex - 1); i < Math.min(lines.length, lineIndex + 5); i++) {
+          const line = lines[i];
+          
+          // Extract condition between "if" and "then"
+          const conditionMatch = line.match(/if\s+(.*?)\s+then/i);
+          if (conditionMatch) {
+            return { text: conditionMatch[1].trim() };
+          }
+        }
+      } else {
+        // If no start position, search the entire source code
+        const lines = ifNode.sourceCode.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          const conditionMatch = line.match(/if\s+(.*?)\s+then/i);
+          if (conditionMatch) {
+            return { text: conditionMatch[1].trim() };
+          }
         }
       }
     } catch (error) {
@@ -270,6 +313,12 @@ function extractConditionFromIf(ifNode) {
 
 // Helper function to extract then branch from if statements
 function extractThenBranch(ifNode) {
+  // Handle fallback parser nodes
+  if (ifNode.then) {
+    return normalizePascal(ifNode.then);
+  }
+  
+  // Handle raw tree-sitter nodes
   if (!ifNode.raw) return null;
   
   // Simple direct approach - just check if there's a then section
@@ -283,6 +332,12 @@ function extractThenBranch(ifNode) {
 
 // Helper function to extract else branch from if-else statements
 function extractElseBranch(ifNode) {
+  // Handle fallback parser nodes
+  if (ifNode.else) {
+    return normalizePascal(ifNode.else);
+  }
+  
+  // Handle raw tree-sitter nodes
   if (!ifNode.raw) return null;
   
   // Simple direct approach - just check if there's an else section
@@ -296,6 +351,22 @@ function extractElseBranch(ifNode) {
 
 // Helper function to extract case body from case statements
 function extractCaseBody(caseNode) {
+  // Handle fallback parser nodes
+  if (caseNode.body && Array.isArray(caseNode.body)) {
+    // Process the case options from the fallback parser
+    return caseNode.body.map(option => {
+      // Normalize the option based on its type
+      if (option.type === 'caseCase' || option.type === 'kElse') {
+        return {
+          type: option.type === 'kElse' ? 'ElseCase' : 'CaseOption',
+          value: option.label || '',
+          body: option.body ? normalizePascal(option.body) : null
+        };
+      }
+      return normalizePascal(option);
+    }).filter(Boolean);
+  }
+  
   if (!caseNode.raw) return [];
   
   // Simple direct approach - just check if there are caseCase sections
@@ -314,25 +385,43 @@ function extractCaseBody(caseNode) {
 
 // Helper function to extract condition from case statements
 function extractConditionFromCase(caseNode) {
+  // If we have the condition text directly (from fallback parser)
+  if (caseNode.cond && caseNode.cond.text) {
+    return { text: caseNode.cond.text };
+  }
+  
   // If we have source code, extract the actual expression from it
   if (caseNode.sourceCode) {
     try {
-      // Parse the start position to get line and column
-      const startPos = caseNode.start.split(',').map(Number);
-      const lineIndex = startPos[0] - 1; // Convert to 0-based index
-      
-      // Get the lines of source code
-      const lines = caseNode.sourceCode.split('\n');
-      
-      // Search for the actual case statement in the vicinity of the reported start position
-      // Look in a few lines before and after the reported position
-      for (let i = Math.max(0, lineIndex - 1); i < Math.min(lines.length, lineIndex + 5); i++) {
-        const line = lines[i];
+      // If we have start position, use it
+      if (caseNode.start) {
+        // Parse the start position to get line and column
+        const startPos = caseNode.start.split(',').map(Number);
+        const lineIndex = startPos[0] - 1; // Convert to 0-based index
         
-        // Extract expression between "case" and "of"
-        const expressionMatch = line.match(/case\s+(.*?)\s+of/i);
-        if (expressionMatch) {
-          return { text: expressionMatch[1].trim() };
+        // Get the lines of source code
+        const lines = caseNode.sourceCode.split('\n');
+        
+        // Search for the actual case statement in the vicinity of the reported start position
+        // Look in a few lines before and after the reported position
+        for (let i = Math.max(0, lineIndex - 1); i < Math.min(lines.length, lineIndex + 5); i++) {
+          const line = lines[i];
+          
+          // Extract expression between "case" and "of"
+          const expressionMatch = line.match(/case\s+(.*?)\s+of/i);
+          if (expressionMatch) {
+            return { text: expressionMatch[1].trim() };
+          }
+        }
+      } else {
+        // If no start position, search the entire source code
+        const lines = caseNode.sourceCode.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          const expressionMatch = line.match(/case\s+(.*?)\s+of/i);
+          if (expressionMatch) {
+            return { text: expressionMatch[1].trim() };
+          }
         }
       }
     } catch (error) {

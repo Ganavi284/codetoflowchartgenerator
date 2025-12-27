@@ -1,0 +1,26 @@
+flowchart TD
+  START(["start"])
+  N1["var choice: integer"]
+  N2["var x: integer"]
+  N3["choice := 1"]
+  N4["x := 5"]
+  N5{"case choice"}
+  N6["case 1:"]
+  N7{"if x > 0"}
+  N8[/"writeln('Positive')"/]
+  N9[/"writeln('Non-positive')"/]
+  N10[/"writeln('Invalid choice')"/]
+  END(["end"])
+  START --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 --> N4
+  N4 --> N5
+  N5 --> N6
+  N6 --> N7
+  N7 -- Yes --> N8
+  N7 -- No --> N9
+  N8 --> N10
+  N9 --> N10
+  N10 --> N14
+  N10 --> END

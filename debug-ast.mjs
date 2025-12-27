@@ -1,16 +1,12 @@
-import { extractC } from './ast-to-mermaid/src/mappings/languages/c/extractors/c-extractor.mjs';
+import { extractJava } from './ast-to-mermaid/src/mappings/languages/java/extractors/java-extractor.mjs';
+import fs from 'fs';
 
-const sourceCode = `
-int main() {
-    int n;
-    scanf("%d", &n);
-    return 0;
-}
-`;
+const sourceCode = fs.readFileSync('./FunctionWithIf.java', 'utf-8');
+const javaAst = extractJava(sourceCode);
+console.log(JSON.stringify(javaAst, null, 2));
 
 console.log('Source code:');
 console.log(sourceCode);
 
-const ast = extractC(sourceCode);
 console.log('\n=== RAW AST ===');
-console.log(JSON.stringify(ast, null, 2));
+console.log(JSON.stringify(javaAst, null, 2));

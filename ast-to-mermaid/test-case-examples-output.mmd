@@ -1,0 +1,98 @@
+flowchart TD
+  START(["start"])
+  N1["var choice: integer"]
+  N2["var ch: char"]
+  N3[/"write('Enter a number (1-3): ')"/]
+  N4[/"readln(choice)"/]
+  N5{"case choice"}
+  N6["case 1:"]
+  N7[/"writeln('You chose one')"/]
+  N8["case 2:"]
+  N9[/"writeln('You chose two')"/]
+  N10["case 3:"]
+  N11[/"writeln('You chose three')"/]
+  N12["else:"]
+  N13[/"writeln('Invalid choice')"/]
+  N14[/"write('Enter another number (1-10): ')"/]
+  N15[/"readln(choice)"/]
+  N16{"case choice"}
+  N17["case 1..5:"]
+  N18[/"writeln('Number is between 1 and 5')"/]
+  N19["case 6..10:"]
+  N20[/"writeln('Number is between 6 and 10')"/]
+  N21["else:"]
+  N22[/"writeln('Number is out of range')"/]
+  N23[/"write('Enter a letter: ')"/]
+  N24[/"readln(ch)"/]
+  N25{"case ch"}
+  N26["case 'a', 'e', 'i', 'o', 'u':"]
+  N27[/"writeln('Vowel')"/]
+  N28["case 'b', 'c', 'd', 'f', 'g':"]
+  N29[/"writeln('Consonant group 1')"/]
+  N30["case 'h', 'j', 'k', 'l', 'm':"]
+  N31[/"writeln('Consonant group 2')"/]
+  N32["else:"]
+  N33[/"writeln('Other character')"/]
+  N34[/"write('Enter final number (1-7): ')"/]
+  N35[/"readln(choice)"/]
+  N36{"case choice"}
+  N37["case 1, 3, 5, 7:"]
+  N38[/"writeln('Odd number')"/]
+  N39["case 2, 4, 6:"]
+  N40[/"writeln('Even number')"/]
+  N41["else:"]
+  N42[/"writeln('Not in range')"/]
+  END(["end"])
+  START --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 --> N4
+  N4 --> N5
+  N5 --> N6
+  N6 --> N7
+  N5 --> N8
+  N8 --> N9
+  N5 --> N10
+  N10 --> N11
+  N5 --> N12
+  N12 --> N13
+  N13 --> N14
+  N14 --> N15
+  N15 --> N16
+  N16 --> N17
+  N17 --> N18
+  N16 --> N19
+  N19 --> N20
+  N16 --> N21
+  N21 --> N22
+  N22 --> N23
+  N23 --> N24
+  N24 --> N25
+  N25 --> N26
+  N26 --> N27
+  N25 --> N28
+  N28 --> N29
+  N25 --> N30
+  N30 --> N31
+  N25 --> N32
+  N32 --> N33
+  N33 --> N34
+  N34 --> N35
+  N35 --> N36
+  N36 --> N37
+  N37 --> N38
+  N36 --> N39
+  N39 --> N40
+  N36 --> N41
+  N41 --> N42
+  N7 --> N14
+  N9 --> N14
+  N11 --> N14
+  N18 --> N23
+  N20 --> N23
+  N27 --> N34
+  N29 --> N34
+  N31 --> N34
+  N38 --> END
+  N40 --> END
+  N42 --> END

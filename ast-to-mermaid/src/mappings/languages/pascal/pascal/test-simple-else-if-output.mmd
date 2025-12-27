@@ -1,0 +1,17 @@
+flowchart TD
+  START(["start"])
+  N1["var n: integer"]
+  N2["n := 5"]
+  N3{"if n > 0"}
+  N4[/"writeln('Positive')"/]
+  N5[/"writeln('Negative')"/]
+  N6[/"writeln('Zero')"/]
+  END(["end"])
+  START --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 -- Yes --> N4
+  N4 --> N5
+  N3 -- No --> N5
+  N5 --> N6
+  N6 --> END

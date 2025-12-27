@@ -1,0 +1,52 @@
+flowchart TD
+  START(["start"])
+  N1["var a, b: integer"]
+  N2["var choice: integer"]
+  N3[/"writeln('1. Add')"/]
+  N4[/"writeln('2. Subtract')"/]
+  N5[/"writeln('3. Multiply')"/]
+  N6[/"writeln('4. Divide')"/]
+  N7[/"write('Enter choice: ')"/]
+  N8[/"readln(choice)"/]
+  N9[/"write('Enter two numbers: ')"/]
+  N10[/"readln(a, b)"/]
+  N11{"case choice"}
+  N12["case 1:"]
+  N13[/"writeln('Result = ', a + b)"/]
+  N14["case 2:"]
+  N15[/"writeln('Result = ', a - b)"/]
+  N16["case 3:"]
+  N17[/"writeln('Result = ', a * b)"/]
+  N18["case 4:"]
+  N19{"if b <> 0"}
+  N20[/"writeln('Result = ', a div b)"/]
+  N21[/"writeln('Division by zero')"/]
+  N22[/"writeln('Invalid choice')"/]
+  END(["end"])
+  START --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 --> N4
+  N4 --> N5
+  N5 --> N6
+  N6 --> N7
+  N7 --> N8
+  N8 --> N9
+  N9 --> N10
+  N10 --> N11
+  N11 --> N12
+  N12 --> N13
+  N11 --> N14
+  N14 --> N15
+  N11 --> N16
+  N16 --> N17
+  N11 --> N18
+  N18 --> N19
+  N19 -- Yes --> N20
+  N19 -- No --> N21
+  N20 --> N22
+  N21 --> N22
+  N13 --> END
+  N15 --> END
+  N17 --> END
+  N22 --> END

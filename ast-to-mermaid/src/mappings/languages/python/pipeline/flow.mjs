@@ -1,15 +1,18 @@
 import { extractPython } from '../extractors/python-extractor.mjs';
 import { normalizePython } from '../normalizer/normalize-python.mjs';
 import { walk } from '../walkers/walk.mjs';
-import { ctx } from '../../c/mermaid/context.mjs';
+import { ctx } from '../mermaid/context.mjs';
+import { finalizeFlowContext } from '../mermaid/finalize-context.mjs';
 
 // Import mapping functions (reusing C mapping functions since they're similar)
-import { mapIf } from '../../c/conditional/if.mjs';
+import { mapIf } from '../conditional/if.mjs';
+
 import { mapFor } from '../loops/map-for.mjs';
 import { mapWhile } from '../loops/map-while.mjs';
-import { mapFunction } from '../../c/functions/function-definition.mjs';
+import { mapFunction } from '../functions/function-definition.mjs';
+import { mapFunctionCall } from '../functions/function-call.mjs';
 import { mapReturn } from '../../c/other-statements/return.mjs';
-import { mapAssign } from '../../c/other-statements/assign.mjs';
+import { mapAssign } from '../other-statements/assign.mjs';
 import { mapIO } from '../io/io.mjs';
 import { mapDecl } from '../../c/other-statements/declaration.mjs';
 import { mapExpr } from '../../c/other-statements/expression.mjs';
@@ -21,33 +24,49 @@ import { mapMatch, mapCase, mapDefault } from '../conditional/switch/switch.mjs'
  * @param {Object} ctx - Context for flowchart generation
  */
 function mapNodePython(node, ctx) {
+  // Determine which context to use - main context or subgraph context
+  const targetCtx = ctx.subgraphContext || ctx;
+  
   switch (node.type) {
-    case "If": return mapIf(node, ctx);
-    case "For": return mapFor(node, ctx);
-    case "While": return mapWhile(node, ctx);
-    case "Function": return mapFunction(node, ctx);
-    case "Return": return mapReturn(node, ctx);
-    case "Assign": return mapAssign(node, ctx);
-    case "IO": return mapIO(node, ctx);
-    case "Decl": return mapDecl(node, ctx);
-    case "Expr": return mapExpr(node, ctx);
-    case "Match": return mapMatch(node, ctx);
+    case "If": return mapIf(node, targetCtx);
+    case "For": return mapFor(node, targetCtx);
+    case "While": return mapWhile(node, targetCtx);
+    case "Function": return mapFunction(node, targetCtx);
+    case "FunctionCall": return mapFunctionCall(node, targetCtx);
+    case "Return": return mapReturn(node, targetCtx);
+    case "Assign": return mapAssign(node, targetCtx);
+    case "IO": return mapIO(node, targetCtx);
+    case "Decl": return mapDecl(node, targetCtx);
+    case "Expr": return mapExpr(node, targetCtx);
+    case "Match": return mapMatch(node, targetCtx);
     case "Case": 
       // Check if this is a default case (wildcard pattern)
       if (node.pattern && node.pattern.type === "Expr" && node.pattern.text === "_") {
-        return mapDefault(node, ctx);
+        return mapDefault(node, targetCtx);
       } else {
-        return mapCase(node, ctx);
+        return mapCase(node, targetCtx);
       }
     default:
       // For unhandled node types, create a generic process node
       if (node.text) {
-        const id = ctx.next();
-        ctx.add(id, `["${node.text}"]`);
-        if (ctx.last) {
-          ctx.addEdge(ctx.last, id);
+        const id = targetCtx.next();
+        targetCtx.add(id, `["${node.text}"]`);
+        
+        // Check if this is a case body being processed and needs to connect to a pending condition
+        if (targetCtx.pendingCaseCondition) {
+          // Connect this node to the pending case condition with "Yes" label instead of to previous
+          targetCtx.addEdge(targetCtx.pendingCaseCondition, id, "Yes");
+          // Clear the pending condition as it's now used
+          targetCtx.pendingCaseCondition = null;
+          // Set this node as the last node
+          targetCtx.setLast(id);
+        } else {
+          // Regular connection to previous node
+          if (targetCtx.last) {
+            targetCtx.addEdge(targetCtx.last, id);
+          }
+          targetCtx.setLast(id);
         }
-        ctx.setLast(id);
       }
   }
 }
@@ -75,49 +94,65 @@ export function generateFlowchart(sourceCode) {
   // 4. Walk and generate nodes using mapping functions
   if (normalized) {
     // Find the main program and process its body
-    const program = normalized.type === 'Program' ? normalized : 
-                   normalized.body?.find(node => node.type === 'Program');
+    let program;
+    if (normalized && normalized.type === 'Program') {
+      program = normalized;
+    } else if (normalized && normalized.body) {
+      // If normalized is a module with body, use it directly
+      program = normalized;
+    } else {
+      program = normalized?.body?.find(node => node.type === 'Program');
+    }
     
-    if (program && program.body) {
+    // If no program was found, try using the normalized object directly if it has a body
+    const programToUse = program || (normalized && normalized.body ? normalized : null);
+    
+    if (programToUse && programToUse.body) {
+      // First, collect all function definitions separately
+      const functionDefinitions = new Map();
+      const mainBody = [];
+      
+      for (const node of programToUse.body) {
+        if (node && node.type === 'Function') {
+          // Store function definition by name
+          functionDefinitions.set(node.name, node);
+        } else {
+          // Add non-function nodes to main execution body
+          mainBody.push(node);
+        }
+      }
+      
+      // Add function definitions to context for later use
+      context.functionDefinitions = functionDefinitions;
+      
       // Create a walker context with our handler
       const walkerContext = {
         handle: (node) => mapNodePython(node, context),
         enterBranch: (type) => context.enterBranch(type),
         exitBranch: (type) => context.exitBranch(type),
-        completeIf: () => context.completeIf(),
+        completeIf: () => context.completeBranches(),
+        completeLoop: () => context.completeLoop(),
         // Add direct access to the context for case tracking
-        getContext: () => context
+        getContext: () => context,
+        // Function call handler for executing function bodies
+        functionCallHandler: (node, ctx) => mapNodePython(node, ctx)
       };
       
-      // Walk through the program body
-      program.body.forEach(node => walk(node, walkerContext));
+      // Also set the functionCallHandler on the main context so it can be accessed by subgraph operations
+      context.functionCallHandler = walkerContext.functionCallHandler;
+      
+      // Walk through the main execution body (excluding function definitions)
+      mainBody.forEach(node => {
+        if (node) {
+          walk(node, walkerContext);
+        }
+      });
     }
   }
   
-  // Complete any pending branches
-  context.completeBranches();
+  // 5. Finalize the context to handle proper branch joins and add end node
+  finalizeFlowContext(context);
   
-  // Add the end node
-  const endId = context.next();
-  context.add(endId, '(["end"])');
-  
-  // For switch statements, we need to connect all case end nodes to the end
-  if (context.caseEndNodes && context.caseEndNodes.length > 0) {
-    context.caseEndNodes.forEach(caseEndId => {
-      context.addEdge(caseEndId, endId);
-    });
-    // Clear the last node since we've connected all case ends
-    context.last = null;
-  }
-  
-  if (context.last) {
-    context.addEdge(context.last, endId);
-  }
-  
-  // 5. Generate Mermaid diagram
-  let diagram = 'graph TD\n';
-  diagram += context.nodes.join('\n') + '\n';
-  diagram += context.edges.join('\n') + '\n';
-  
-  return diagram;
+  // 6. Generate Mermaid diagram using the context's emit method
+  return context.emit();
 }

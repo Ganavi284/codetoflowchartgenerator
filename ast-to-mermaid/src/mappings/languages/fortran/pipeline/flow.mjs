@@ -5,41 +5,13 @@ import { ctx } from '../mermaid/context.mjs';
 import { finalizeFlowContext } from '../mermaid/finalize-context.mjs';
 
 // Import mapping functions (reusing C mapping functions since they're similar)
-import { mapIf } from '../../c/conditional/if.mjs';
-import { mapFor } from '../../c/loops/for.mjs';
-import { mapWhile } from '../../c/loops/while.mjs';
-import { mapFunction } from '../../c/functions/function-definition.mjs';
-import { mapReturn } from '../../c/other-statements/return.mjs';
-import { mapAssign } from '../../c/other-statements/assign.mjs';
-import { mapIO } from '../../c/io/io.mjs';
-import { mapDecl } from '../../c/other-statements/declaration.mjs';
-import { mapExpr } from '../../c/other-statements/expression.mjs';
-// Import switch statement mapping functions
-import { mapSelectCase, mapCase, mapCaseDefault } from '../conditional/switch/switch.mjs';
+import { mapNode } from './map-node.js';
 
 /**
  * Map Fortran nodes to Mermaid flowchart nodes
  * @param {Object} node - Normalized Fortran node
  * @param {Object} ctx - Context for flowchart generation
  */
-export function mapNodeFortran(node, ctx, mapper) {
-  switch (node.type) {
-    case "If": return mapIf(node, ctx, mapper);
-    case "For": return mapFor(node, ctx, mapper);
-    case "While": return mapWhile(node, ctx, mapper);
-    case "Function": return mapFunction(node, ctx, mapper);
-    case "Return": return mapReturn(node, ctx, mapper);
-    case "Assign": return mapAssign(node, ctx, mapper);
-    case "IO": return mapIO(node, ctx, mapper);
-    case "Decl": return mapDecl(node, ctx, mapper);
-    case "Expr": return mapExpr(node, ctx, mapper);
-    // Handle switch statements
-    case "SelectCase": return mapSelectCase(node, ctx, mapper);
-    case "Case": return mapCase(node, ctx, mapper);
-    case "CaseDefault": return mapCaseDefault(node, ctx, mapper);
-  }
-}
-
 /**
  * Generate VTU-style Mermaid flowchart from Fortran source code
  * @param {string} sourceCode - Fortran source code
@@ -96,7 +68,7 @@ export function generateFlowchart(sourceCode) {
         handle: (node) => {
           if (node && node.type) {
             // Use the mapping function to add nodes to the context
-            mapNodeFortran(node, context, mapNodeFortran);
+            mapNode(node, context, mapNode);
           }
         }
       };
@@ -111,7 +83,7 @@ export function generateFlowchart(sourceCode) {
         handle: (node) => {
           if (node && node.type) {
             // Use the mapping function to add nodes to the context
-            mapNodeFortran(node, context, mapNodeFortran);
+            mapNode(node, context, mapNode);
           }
         }
       };

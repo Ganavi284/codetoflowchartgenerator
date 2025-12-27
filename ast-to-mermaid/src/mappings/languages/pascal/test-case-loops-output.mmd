@@ -1,0 +1,56 @@
+flowchart TD
+  START(["start"])
+  N1["var x, i: integer"]
+  N2{"case x"}
+  N3["case 1:"]
+  N4[/"writeln('Case 1')"/]
+  N5{"if x > 0"}
+  N6[/"writeln('Positive number')"/]
+  N7["case 2:"]
+  N8[/"writeln('Case 2')"/]
+  N9{"for i := 1 to 5"}
+  N10[/"writeln('Iteration: ', i)"/]
+  N11["case 3:"]
+  N12[/"writeln('Case 3')"/]
+  N13["i := 0"]
+  N14{"while (i < 3)"}
+  N15["begin writeln('While iteration: ', i)"]
+  N16["i := i + 1"]
+  N17["end"]
+  N18["case 4:"]
+  N19[/"writeln('Case 4')"/]
+  N20{"if x > 10"}
+  N21[/"writeln('Greater than 10')"/]
+  N22[/"writeln('Less than or equal to 10')"/]
+  N23["else:"]
+  N24[/"writeln('Positive number')"/]
+  END(["end"])
+  START --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 --> N4
+  N4 --> N5
+  N5 -- Yes --> N6
+  N2 --> N7
+  N6 --> N8
+  N5 -- No --> N8
+  N8 -- Yes --> N9
+  N9 --> N10
+  N2 --> N11
+  N11 --> N12
+  N12 --> N13
+  N13 -- Yes --> N14
+  N14 --> N15
+  N15 --> N16
+  N16 --> N17
+  N2 --> N18
+  N18 --> N19
+  N19 --> N20
+  N20 -- Yes --> N21
+  N20 -- No --> N22
+  N2 --> N23
+  N21 --> N24
+  N22 --> N24
+  N10 --> END
+  N17 --> END
+  N24 --> END

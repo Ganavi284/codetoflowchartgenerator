@@ -9,6 +9,7 @@ import { generateFlowchart as generateCFlowchart } from '../src/mappings/languag
 import { generateFlowchart as generateCppFlowchart } from '../src/mappings/languages/cpp/pipeline/flow.mjs';
 import { generateFlowchart as generatePythonFlowchart } from '../src/mappings/languages/python/pipeline/flow.mjs';
 import { generateFlowchart as generateFortranFlowchart } from '../src/mappings/languages/fortran/pipeline/flow.mjs';
+import { generateFlowchart as generatePascalFlowchart } from '../src/mappings/languages/pascal/pipeline/flow.mjs';
 import fs from 'fs';
 
 function showHelp() {
@@ -18,7 +19,7 @@ Usage: ast2mermaid [options] <file>
 Options:
   -h, --help     Show help
   -o, --output   Output file (default: stdout)
-  -l, --language Language of the input file
+  -l, --language Language of the input file (c, cpp, python, fortran, pascal)
 
 Examples:
   ast2mermaid -l javascript example.js
@@ -83,6 +84,9 @@ async function main() {
     } else if (options.language === 'fortran') {
       // Use our new VTU-style flowchart generator for Fortran
       mermaidDiagram = generateFortranFlowchart(sourceCode);
+    } else if (options.language === 'pascal') {
+      // Use our new VTU-style flowchart generator for Pascal
+      mermaidDiagram = generatePascalFlowchart(sourceCode);
     } else {
       // Use the existing converter for other languages
       mermaidDiagram = await convertAST(sourceCode, options.language);

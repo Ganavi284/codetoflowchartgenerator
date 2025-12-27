@@ -1,0 +1,27 @@
+flowchart TD
+  START(["start"])
+  N1["var marks: integer"]
+  N2[/"write('Enter marks: ')"/]
+  N3[/"readln(marks)"/]
+  N4{"if marks >= 90"}
+  N5[/"writeln('Grade A')"/]
+  N6{"if marks >= 75"}
+  N7[/"writeln('Grade B')"/]
+  N8{"if marks >= 50"}
+  N9[/"writeln('Grade C')"/]
+  N10[/"writeln('Fail')"/]
+  END(["end"])
+  START --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 --> N4
+  N4 -- Yes --> N5
+  N4 -- No --> N6
+  N6 -- Yes --> N7
+  N6 -- No --> N8
+  N8 -- Yes --> N9
+  N8 -- No --> N10
+  N9 --> END
+  N10 --> END
+  N7 --> END
+  N5 --> END

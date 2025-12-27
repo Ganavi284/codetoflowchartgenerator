@@ -1,0 +1,15 @@
+flowchart TD
+  START(["start"])
+  N1["var i: integer"]
+  N2["i := 1"]
+  N3{"i <= 5"}
+  N4["begin if i mod 2 = 0 then writeln(i, ' is even') else writeln(i, ' is odd'); end; end."]
+  N5[i := i + 1]
+  END(["end"])
+  START --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 -- Yes --> N4
+  N4 --> N5
+  N5 --> N3
+  N5 --> END

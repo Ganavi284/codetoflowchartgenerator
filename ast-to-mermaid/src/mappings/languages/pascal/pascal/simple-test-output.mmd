@@ -1,0 +1,17 @@
+flowchart TD
+  START(["start"])
+  N1["var x: integer"]
+  N2["x := 1"]
+  N3{"case x"}
+  N4["case 1:"]
+  N5[/"writeln('One')"/]
+  N6[/"writeln('Other')"/]
+  END(["end"])
+  START --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 --> N4
+  N4 --> N5
+  N5 --> N6
+  N5 --> END
+  N6 --> END

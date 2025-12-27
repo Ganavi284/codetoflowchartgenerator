@@ -1,16 +1,15 @@
 /**
- * Method declaration mapping for Java language
+ * Function/method declaration mapping for Java language
+ * Aligns with C/C++ function handling for consistency
  */
-
-export function mapMethodDeclaration(node) {
-  // Map method declaration with body support
+export function mapFunctionDeclaration(node) {
+  // Map function/method declaration with body support
   return {
-    type: 'method',
+    type: 'function',
     id: node.id,
-    name: node.name,
     params: node.params,
     body: node.body,
     // Add unique ID for Mermaid diagram generation
-    mermaidId: `method-${node.name || 'anonymous'}`
+    mermaidId: `function-${node.id.name || 'anonymous'}`
   };
 }

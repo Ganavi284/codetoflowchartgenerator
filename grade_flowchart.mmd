@@ -1,0 +1,45 @@
+flowchart TD
+
+N1(["start"])
+
+N2[marks = 78]
+
+N3{"if marks >= 90"}
+
+N4[/"print('Grade A')"/]
+
+N5{"elif marks >= 75"}
+
+N6[/"print('Grade B')"/]
+
+N7{"elif marks >= 50"}
+
+N8[/"print('Grade C')"/]
+
+N9[/"print('Fail')"/]
+
+N10(["end"])
+
+N1 --> N2
+
+N2 --> N3
+
+N3 -- Yes --> N4
+
+N3 -- No --> N5
+
+N5 -- Yes --> N6
+
+N5 -- No --> N7
+
+N7 -- Yes --> N8
+
+N7 -- No --> N9
+
+N4 --> N10
+
+N6 --> N10
+
+N8 --> N10
+
+N9 --> N10

@@ -13,7 +13,7 @@ export const shapes = {
   // Additional shapes
   hexagon: '{{{}}}',
   database: '[[{}]]',
-  parallelogram: '[/{}/]',
+  parallelogram: '[/"{}"/]',
   
   // Standard box (rectangle)
   box: '[{}]',
@@ -22,5 +22,8 @@ export const shapes = {
   rounded: '({})',
   
   // Perfect circle
-  diamond: '{{}}'
+  diamond: '{{}}',
+  
+  // Function shape (double rectangle like C)
+  function: '[["{}"]]'  
 };

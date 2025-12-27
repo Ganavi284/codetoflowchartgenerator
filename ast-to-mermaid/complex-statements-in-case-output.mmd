@@ -1,0 +1,56 @@
+flowchart TD
+  START(["start"])
+  N1["var x: integer"]
+  N2{"case x"}
+  N3["case 1:"]
+  N4{"if x > 0"}
+  N5[/"writeln('Positive number')"/]
+  N6[/"writeln('Non-positive number')"/]
+  N7["case 2:"]
+  N8[/"write('Enter a number: ')"/]
+  N9[/"readln(x)"/]
+  N10[/"writeln('You entered: ', x)"/]
+  N11["case 3:"]
+  N12["i := 1"]
+  N13{"i <= 5"}
+  N14[/"writeln('Iteration: ', i)"/]
+  N15[i := i + 1]
+  N16["case writeln('Countdown:"]
+  N17["', x)"]
+  N18["case x:"]
+  N19["= x - 1; end"]
+  N20["else:"]
+  N21{"while (x > 0)"}
+  N22["procedure call"]
+  N23["begin"]
+  END(["end"])
+  START --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 --> N4
+  N4 -- Yes --> N5
+  N4 -- No --> N6
+  N2 --> N7
+  N5 --> N8
+  N6 --> N8
+  N8 --> N9
+  N9 --> N10
+  N2 --> N11
+  N11 --> N12
+  N12 --> N13
+  N13 -- Yes --> N14
+  N14 --> N15
+  N15 --> N13
+  N2 --> N16
+  N16 --> N17
+  N2 --> N18
+  N18 --> N19
+  N2 --> N20
+  N20 --> N21
+  N14 --> N22
+  N22 --> N23
+  N10 --> END
+  N14 --> END
+  N17 --> END
+  N19 --> END
+  N23 --> END

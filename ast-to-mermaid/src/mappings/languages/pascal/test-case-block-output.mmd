@@ -1,0 +1,30 @@
+flowchart TD
+  START(["start"])
+  N1["var n: integer"]
+  N2[/"write('Enter a number: ')"/]
+  N3[/"readln(n)"/]
+  N4{"case n"}
+  N5["case 1:"]
+  N6[/"writeln('One')"/]
+  N7[/"writeln('Odd number')"/]
+  N8["case 2:"]
+  N9[/"writeln('Two')"/]
+  N10[/"writeln('Even number')"/]
+  N11["else:"]
+  N12[/"writeln('Other number')"/]
+  END(["end"])
+  START --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 --> N4
+  N4 --> N5
+  N5 --> N6
+  N6 --> N7
+  N4 --> N8
+  N8 --> N9
+  N9 --> N10
+  N4 --> N11
+  N11 --> N12
+  N7 --> END
+  N10 --> END
+  N12 --> END

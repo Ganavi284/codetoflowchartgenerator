@@ -81,12 +81,161 @@ export function ctx() {
       return (this.ifBranchDepth || 0) > 0;
     },
     
+    // Handle branch connections for conditional nodes
+    handleBranchConnection(id, options = {}) {
+      if (!this.pendingBranchConnections) {
+        this.pendingBranchConnections = [];
+      }
+      
+      // For decision nodes, we need to handle Yes/No branches
+      if (this.last && this.last !== id) {
+        // Determine if this is a Yes or No branch based on context
+        // For now, default to connecting normally
+        if (!options.skipEdge) {
+          this.addEdge(this.last, id);
+        }
+      }
+      
+      this.last = id;
+      return false; // Not joined
+    },
+    
+    // Complete a loop by connecting the last node back to the loop condition
+    completeLoop() {
+      if (this.inLoop && this.loopContinueNode && this.last && this.last !== this.loopContinueNode) {
+        // Connect the last processed node back to the loop condition/decision node
+        this.addEdge(this.last, this.loopContinueNode);
+        // Reset loop state
+        this.inLoop = false;
+        this.loopContinueNode = null;
+      }
+    },
+    
+    // Enter a branch (for if statements)
+    enterBranch(branchType) {
+      if (!this.activeBranches) {
+        this.activeBranches = [];
+      }
+      this.activeBranches.push(branchType);
+    },
+    
+    // Exit a branch (for if statements)
+    exitBranch(branchType) {
+      if (this.activeBranches && this.activeBranches.length > 0) {
+        this.activeBranches.pop();
+      }
+    },
+    
+    // Function definitions and subgraphs
+    functionDefinitions: new Map(),
+    subgraphs: {},
+    
+    addSubgraph(id, title, nodes, edges) {
+      this.subgraphs[id] = { title, nodes, edges };
+    },
+    
     emit() {
-      return [
-        'flowchart TD',
-        ...this.nodes,
-        ...this.edges
-      ].join('\n');
+      const result = ['flowchart TD'];
+      
+      // Add regular nodes
+      result.push(...this.nodes);
+      
+      // Add subgraphs
+      for (const [id, subgraph] of Object.entries(this.subgraphs)) {
+        result.push(`subgraph ${id}["${subgraph.title}"]`);
+        result.push(...subgraph.nodes);
+        result.push(...subgraph.edges);
+        result.push('end');
+      }
+      
+      // Add edges
+      result.push(...this.edges);
+      
+      return result.join('\n');
+    },
+    
+    // Execute a function body in a subgraph
+    executeFunctionBody(funcDef, funcName) {
+      if (!funcDef || !funcDef.body) return;
+      
+      // Create a subgraph for the function
+      const subgraphId = `SG${Object.keys(this.subgraphs).length + 1}`;
+      const subgraphTitle = `function ${funcDef.name || funcName}`;
+      
+      // Create temporary context for the subgraph
+      const subgraphCtx = {
+        nodes: [],
+        edges: [],
+        last: null,
+        next: () => `SGN${nodeId++}`, // Use different ID generator for subgraph nodes
+        add: function(id, label) { this.nodes.push(`${id}${label}`); },
+        addEdge: function(from, to, label = null) {
+          if (label) {
+            this.edges.push(`${from} -- ${label} --> ${to}`);
+          } else {
+            this.edges.push(`${from} --> ${to}`);
+          }
+        },
+        setLast: function(id) { this.last = id; },
+        // Include other needed methods
+        handleBranchConnection: this.handleBranchConnection,
+        completeBranches: this.completeBranches,
+        functionDefinitions: this.functionDefinitions,
+        executeFunctionBody: this.executeFunctionBody,
+        functionCallHandler: this.functionCallHandler,
+        // Set subgraph context so mapping functions know to use this context
+        subgraphContext: null,
+        addSubgraph: this.addSubgraph,
+        subgraphs: this.subgraphs,
+        ifConditionId: null,
+        thenBranchConnected: false,
+        elseBranchConnected: false,
+        hasElseBranch: false,
+        thenBranchLast: null,
+        elseBranchLast: null,
+        ifMergeCandidate: null,
+        ifBranchDepth: 0,
+        completedIfStatements: [],
+        pendingBranchConnections: [],
+        activeBranches: [],
+        inLoop: false,
+        loopContinueNode: null,
+        switchEndNodes: [],
+        pendingBreaks: [],
+        currentSwitchId: null,
+        deferredStatements: [],
+        // Store the original context for connections
+        originalContext: this
+      };
+      
+      // Execute the function body in the subgraph context
+      if (Array.isArray(funcDef.body)) {
+        for (const child of funcDef.body) {
+          if (child && child.type !== 'Expr' && child.type !== 'def' && child.type !== 'function_name' && child.type !== 'parameters' && child.type !== 'colon') {
+            if (this.functionCallHandler && typeof this.functionCallHandler === 'function') {
+              // Create a modified context that uses the subgraph context
+              const modifiedContext = Object.assign({}, this, {
+                subgraphContext: subgraphCtx
+              });
+              this.functionCallHandler(child, modifiedContext);
+            }
+          }
+        }
+      } else {
+        if (this.functionCallHandler && typeof this.functionCallHandler === 'function') {
+          // Create a modified context that uses the subgraph context
+          const modifiedContext = Object.assign({}, this, {
+            subgraphContext: subgraphCtx
+          });
+          this.functionCallHandler(funcDef.body, modifiedContext);
+        }
+      }
+      
+      // Add the subgraph to the main context
+      this.addSubgraph(subgraphId, subgraphTitle, subgraphCtx.nodes, subgraphCtx.edges);
+      
+      // Return the subgraph ID so caller can make connections
+      return subgraphId;
     }
   };
   

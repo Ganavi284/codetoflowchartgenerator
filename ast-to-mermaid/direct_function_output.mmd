@@ -1,0 +1,10 @@
+flowchart TD
+N1(["start"])
+N2[["even_or_odd(7)"]]
+N4(["end"])
+subgraph SG1["function even_or_odd"]
+SGN3{"if n % 2 == 0"}
+SGN3 --> SGN3
+end
+N1 --> N2
+N2 --> N4

@@ -1,0 +1,20 @@
+flowchart TD
+N1(["start"])
+N2[a = 10]
+N3[b = 20]
+N4[result = calculate(a, b)]
+N5[/"print('Final result:', result)"/]
+N6{"if __name__ == "__main__""}
+N7[["main()"]]
+N8(["end"])
+N1 --> N2
+N2 --> N2
+N2 --> N3
+N3 --> N3
+N3 --> N4
+N4 --> N5
+N5 --> N5
+N5 --> N6
+N6 --> N6
+N6 --> N7
+N7 --> N8

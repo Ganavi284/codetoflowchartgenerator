@@ -19,5 +19,12 @@ export function mapIncDecStatement(node, ctx) {
   ctx.add(incDecId, processShape(incDecText));
   
   // Connect to previous node and set as last
-  linkNext(ctx, incDecId);
+  // Check if we're in a branch context and handle connection appropriately
+  if (ctx.currentIf && ctx.currentIf() && ctx.currentIf().activeBranch) {
+    // We're inside a conditional branch, use branch connection logic
+    ctx.handleBranchConnection(incDecId);
+  } else {
+    // Not in a branch, use normal sequential connection
+    linkNext(ctx, incDecId);
+  }
 }

@@ -1,0 +1,29 @@
+flowchart TD
+N1[/"write('Enter x: ')"/]
+N2[/"readln(x)"/]
+N3[/"write('Enter y: ')"/]
+N4[/"readln(y)"/]
+N5{"if x > 0"}
+N6["begin"]
+N7{"if y > 0"}
+N8[/"writeln('Both positive')"/]
+N9[/"writeln('X positive, Y negative')"/]
+N10{"if y > 0"}
+N11[/"writeln('X negative, Y positive')"/]
+N12[/"writeln('Both negative')"/]
+N13(["end"])
+N1 --> N2
+N2 --> N3
+N3 --> N4
+N4 --> N5
+N5 --> N6
+N5 -- Yes --> N7
+N5 -- No --> N7
+N7 -- Yes --> N8
+N7 -- No --> N9
+N8 --> N10
+N9 --> N10
+N10 -- Yes --> N11
+N10 -- No --> N12
+N11 --> N13
+N12 --> N13

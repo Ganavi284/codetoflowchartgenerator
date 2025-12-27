@@ -1,0 +1,25 @@
+flowchart TD
+N1(["start"])
+N2[marks = []]
+N3[/"n = int(input('Enter number of subjects: '))"/]
+N4{"for i in range(n)"}
+N5[/"marks.append(int(input(f'Enter marks of subject (i+1): ')))"/]
+N6[avg, result = evaluate_student(marks)]
+N7[/"print('Average =', avg)"/]
+N8[/"print('Grade =', result)"/]
+N9(["end"])
+N1 --> N2
+N2 --> N2
+N2 --> N3
+N3 --> N3
+N3 --> N4
+N4 --> N4
+N4 --> N5
+N5 --> N5
+N5 --> N4
+N5 --> N6
+N6 --> N7
+N7 --> N7
+N7 --> N8
+N8 --> N8
+N8 --> N9

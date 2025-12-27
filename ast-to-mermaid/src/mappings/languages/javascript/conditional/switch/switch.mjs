@@ -1,5 +1,5 @@
 import { shapes } from "../../../../mermaid/shapes.mjs";
-import { linkNext } from "../../../javascript/mappings/common/common.mjs";
+import { linkNext } from "../../mappings/common/common.mjs";
 
 // Helper function to create decision shape with text
 const decisionShape = (text) => shapes.decision.replace('{}', text);
@@ -74,18 +74,17 @@ export function mapCase(node, ctx, mapper) {
   if (node.consequent && Array.isArray(node.consequent) && mapper) {
     // Store the current switch ID to ensure it's available during consequent processing
     const originalSwitchId = ctx.currentSwitchId;
-    const originalLast = ctx.last;
-    
+        
     // Set the case node as the last node so consequent statements connect to it
     ctx.last = caseId;
-    
+        
     // Process each consequent statement
     node.consequent.forEach(statement => {
       mapper(statement, ctx);
     });
-    
-    // Restore the original context state
-    ctx.last = originalLast;
+        
+    // Don't restore originalLast here - let the processed statements determine the final 'last' for this case
+    // This ensures that if there are conditionals with branches, the last will be where branches join
     if (!ctx.currentSwitchId && originalSwitchId) {
       ctx.currentSwitchId = originalSwitchId;
     }
@@ -119,18 +118,17 @@ export function mapDefault(node, ctx, mapper) {
   if (node.consequent && Array.isArray(node.consequent) && mapper) {
     // Store the current switch ID to ensure it's available during consequent processing
     const originalSwitchId = ctx.currentSwitchId;
-    const originalLast = ctx.last;
-    
+        
     // Set the default node as the last node so consequent statements connect to it
     ctx.last = defaultId;
-    
+        
     // Process each consequent statement
     node.consequent.forEach(statement => {
       mapper(statement, ctx);
     });
-    
-    // Restore the original context state
-    ctx.last = originalLast;
+        
+    // Don't restore originalLast here - let the processed statements determine the final 'last' for this case
+    // This ensures that if there are conditionals with branches, the last will be where branches join
     if (!ctx.currentSwitchId && originalSwitchId) {
       ctx.currentSwitchId = originalSwitchId;
     }

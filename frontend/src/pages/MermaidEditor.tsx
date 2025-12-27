@@ -7,10 +7,225 @@ import html2canvas from 'html2canvas';
 import ThemeSwitch from '../components/ThemeSwitchButton';
 import styled from 'styled-components';
 
-const Container = styled.div<{ theme?: { background: string, text: string } }> `
-  background-color: ${props => props.theme?.background || '#f5f7fa'};
+const Container = styled.div<{ theme?: { background: string, text: string, card: string, border: string, mode: string } }> `
+  background: ${props => props.theme?.mode === 'dark' 
+    ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' 
+    : 'linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%)'};
   color: ${props => props.theme?.text || '#222'};
   min-height: 100vh;
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+  transition: background-color 0.3s ease;
+  
+  &:before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+    z-index: 0;
+  }
+`;
+
+const HeaderBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 2rem;
+  background: ${props => props.theme?.card || 'rgba(255,255,255,0.8)'};
+  border: 1px solid ${props => props.theme?.border || 'rgba(255,255,255,0.2)'};
+  border-radius: 20px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
+  
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  }
+`;
+
+const Title = styled.h1<{ theme?: { text: string, mode: string } }>`
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: ${props => props.theme?.mode === 'dark' 
+    ? 'linear-gradient(90deg, #93c5fd, #c4b5fd)' 
+    : 'linear-gradient(90deg, #3b82f6, #8b5cf6)'};
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  position: relative;
+`;
+
+const ControlGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 0.75rem;
+`;
+
+const StyledButton = styled.button<{ variant?: 'primary' | 'secondary' | 'danger' | 'warning' | 'success' }>`
+  padding: 0.75rem 1.25rem;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  
+  ${props => props.variant === 'primary' && `
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    color: white;
+    
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+    }
+  `}
+  
+  ${props => props.variant === 'secondary' && `
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+    color: white;
+    
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(100, 116, 139, 0.4);
+    }
+  `}
+  
+  ${props => props.variant === 'danger' && `
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+    }
+  `}
+  
+  ${props => props.variant === 'warning' && `
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+    }
+  `}
+  
+  ${props => props.variant === 'success' && `
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+    }
+  `}
+  
+  &:active {
+    transform: translateY(-1px);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+const ZoomControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: ${props => props.theme?.mode === 'dark' 
+    ? 'rgba(30, 41, 59, 0.7)' 
+    : 'rgba(255, 255, 255, 0.7)'};
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+`;
+
+const ZoomDisplay = styled.span`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  min-width: 3.5rem;
+  text-align: center;
+  background: ${props => props.theme?.mode === 'dark' 
+    ? 'rgba(55, 65, 81, 0.5)' 
+    : 'rgba(243, 244, 246, 0.8)'};
+  padding: 0.25rem 0.75rem;
+  border-radius: 10px;
+`;
+
+const DiagramContainer = styled.div`
+  background: ${props => props.theme?.card || 'rgba(255,255,255,0.8)'};
+  border: 1px solid ${props => props.theme?.border || 'rgba(255,255,255,0.2)'};
+  border-radius: 20px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+  height: calc(100vh - 200px);
+  position: relative;
+  
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #10b981, #059669);
+  }
+`;
+
+const DiagramViewer = styled.div`
+  height: 100%;
+  overflow: auto;
+  background-color: inherit;
+  position: relative;
+  scroll-behavior: smooth;
+`;
+
+const DiagramContent = styled.div`
+  min-width: fit-content;
+  min-height: fit-content;
+  padding: 2rem;
+`;
+
+const ScalableDiagram = styled.div`
+  display: inline-block;
+  transition: transform 0.3s ease;
+`;
+
+const PreviewArea = styled.div`
+  background-color: inherit;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: inline-block;
+  min-width: 12.5rem;
+  min-height: 12.5rem;
 `;
 
 const defaultCode = `graph TD
@@ -36,31 +251,25 @@ const MermaidEditor: React.FC = () => {
 
   // Define zoom functions
   const handleZoomIn = useCallback(() => {
-    console.log('Zoom in function called');
     setZoom(prev => Math.min(prev + 0.2, 3));
   }, []);
   
   const handleZoomOut = useCallback(() => {
-    console.log('Zoom out function called');
     setZoom(prev => Math.max(prev - 0.2, 0.5));
   }, []);
   
   const handleResetZoom = useCallback(() => {
-    console.log('Reset zoom function called');
     setZoom(1);
   }, []);
 
   // Add keyboard event listeners for zooming
   useEffect(() => {
-    console.log('Adding zoom event listeners');
-    
     // Listen for custom zoom events
     window.addEventListener('zoomIn', handleZoomIn);
     window.addEventListener('zoomOut', handleZoomOut);
     window.addEventListener('resetZoom', handleResetZoom);
 
     return () => {
-      console.log('Removing zoom event listeners');
       window.removeEventListener('zoomIn', handleZoomIn);
       window.removeEventListener('zoomOut', handleZoomOut);
       window.removeEventListener('resetZoom', handleResetZoom);
@@ -141,7 +350,6 @@ const MermaidEditor: React.FC = () => {
         downloadLink.click();
         document.body.removeChild(downloadLink);
         URL.revokeObjectURL(svgUrl);
-        console.log('SVG export completed');
       } else if (format === 'png') {
         // Export PNG using html2canvas - wrap SVG in a container
         const wrapper = document.createElement('div');
@@ -173,7 +381,6 @@ const MermaidEditor: React.FC = () => {
           downloadLink.click();
           document.body.removeChild(downloadLink);
           URL.revokeObjectURL(url);
-          console.log('PNG export completed');
         }, 'image/png');
       } else if (format === 'pdf') {
         // Export PDF using html2canvas + jsPDF - wrap SVG in a container
@@ -209,7 +416,6 @@ const MermaidEditor: React.FC = () => {
         
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
         pdf.save('mermaid-diagram.pdf');
-        console.log('PDF export completed');
       }
     } catch (error) {
       console.error('Export failed:', error);
@@ -220,300 +426,56 @@ const MermaidEditor: React.FC = () => {
 
   return (
     <Container>
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100vh',
-        backgroundColor: 'inherit',
-        overflow: 'hidden'
-      }}>
-        <ThemeSwitch />
-      {/* Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        padding: '12px 16px',
-        borderBottom: '1px solid #e5e7eb',
-        backgroundColor: 'inherit',
-        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-        flexWrap: 'wrap',
-        gap: '16px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button
-            onClick={() => navigate(-1)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: '500',
-              transition: 'all 0.2s',
-              boxShadow: '0 2px 4px rgba(102, 126, 234, 0.3)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 4px 8px rgba(102, 126, 234, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 4px rgba(102, 126, 234, 0.3)';
-            }}
-          >
-            <FiArrowLeft size={14} />
+      <ThemeSwitch />
+      <HeaderBar>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <StyledButton variant="secondary" onClick={() => navigate(-1)}>
+            <FiArrowLeft size={16} />
             Back
-          </button>
-          <h1 style={{
-            margin: 0,
-            fontSize: '18px',
-            fontWeight: '600',
-            color: 'inherit'
-          }}>
-            Mermaid Diagram Viewer
-          </h1>
+          </StyledButton>
+          <Title>Mermaid Diagram Viewer</Title>
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          {/* Zoom Controls */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '4px',
-            backgroundColor: 'rgba(0, 0, 0, 0.1)',
-            borderRadius: '6px'
-          }}>
-            <button
-              onClick={handleZoomOut}
-              style={{
-                padding: '6px',
-                backgroundColor: '#ef4444',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                transition: 'all 0.15s',
-                boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#dc2626';
-                e.currentTarget.style.transform = 'scale(1.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#ef4444';
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
-              title="Zoom Out"
-            >
+        <ControlGroup>
+          <ZoomControls>
+            <StyledButton variant="danger" onClick={handleZoomOut} title="Zoom Out">
               <FiZoomOut size={16} />
-            </button>
-            <span style={{
-              fontSize: '13px',
-              fontWeight: '500',
-              color: '#374151',
-              minWidth: '45px',
-              textAlign: 'center'
-            }}>
-              {Math.round(zoom * 100)}%
-            </span>
-            <button
-              onClick={handleZoomIn}
-              style={{
-                padding: '6px',
-                backgroundColor: '#3b82f6',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                transition: 'all 0.15s',
-                boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#2563eb';
-                e.currentTarget.style.transform = 'scale(1.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#3b82f6';
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
-              title="Zoom In"
-            >
+            </StyledButton>
+            <ZoomDisplay>{Math.round(zoom * 100)}%</ZoomDisplay>
+            <StyledButton variant="primary" onClick={handleZoomIn} title="Zoom In">
               <FiZoomIn size={16} />
-            </button>
-            <button
-              onClick={handleResetZoom}
-              style={{
-                padding: '6px',
-                backgroundColor: '#f59e0b',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                transition: 'all 0.15s',
-                boxShadow: '0 2px 4px rgba(245, 158, 11, 0.3)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#d97706';
-                e.currentTarget.style.transform = 'scale(1.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#f59e0b';
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
-              title="Reset Zoom"
-            >
+            </StyledButton>
+            <StyledButton variant="warning" onClick={handleResetZoom} title="Reset Zoom">
               <FiMaximize2 size={14} />
-            </button>
-          </div>
+            </StyledButton>
+          </ZoomControls>
 
-          {/* Export Buttons - SimpleMermaid Style */}
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <button
-              onClick={() => exportDiagram('svg')}
-              style={{
-                padding: '6px 14px',
-                backgroundColor: '#10b981',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '13px',
-                fontWeight: '500',
-                transition: 'all 0.15s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#059669';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#10b981';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
+          <ButtonGroup>
+            <StyledButton variant="success" onClick={() => exportDiagram('svg')}>
               <FiDownload size={14} />
               SVG
-            </button>
-            <button
-              onClick={() => exportDiagram('png')}
-              style={{
-                padding: '6px 14px',
-                backgroundColor: '#f59e0b',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '13px',
-                fontWeight: '500',
-                transition: 'all 0.15s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                boxShadow: '0 2px 4px rgba(245, 158, 11, 0.3)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#d97706';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#f59e0b';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
+            </StyledButton>
+            <StyledButton variant="warning" onClick={() => exportDiagram('png')}>
               <FiDownload size={14} />
               PNG
-            </button>
-            <button
-              onClick={() => exportDiagram('pdf')}
-              style={{
-                padding: '6px 14px',
-                backgroundColor: '#ec4899',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '13px',
-                fontWeight: '500',
-                transition: 'all 0.15s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                boxShadow: '0 2px 4px rgba(236, 72, 153, 0.3)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#db2777';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#ec4899';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
+            </StyledButton>
+            <StyledButton variant="primary" onClick={() => exportDiagram('pdf')}>
               <FiDownload size={14} />
               PDF
-            </button>
-          </div>
-        </div>
-      </div>
+            </StyledButton>
+          </ButtonGroup>
+        </ControlGroup>
+      </HeaderBar>
       
-      {/* Diagram Viewer - Full Screen with Scrolling */}
-      <div
-        ref={containerRef}
-        style={{
-          flex: 1,
-          overflow: 'auto',
-          backgroundColor: 'inherit',
-          position: 'relative',
-          scrollBehavior: 'smooth'
-        }}
-      >
-        <div
-          style={{
-            minWidth: 'fit-content',
-            minHeight: 'fit-content',
-            padding: '32px'
-          }}
-        >
-          <div
-            style={{
-              transform: `scale(${zoom})`,
-              transformOrigin: 'top left',
-              transition: 'transform 0.2s ease',
-              display: 'inline-block'
-            }}
-          >
-            <div
-              ref={previewRef}
-              style={{
-                backgroundColor: 'inherit',
-                borderRadius: '8px',
-                padding: '24px',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                display: 'inline-block',
-                minWidth: '200px',
-                minHeight: '200px'
-              }}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
+      <DiagramContainer>
+        <DiagramViewer ref={containerRef}>
+          <DiagramContent>
+            <ScalableDiagram style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}>
+              <PreviewArea ref={previewRef} />
+            </ScalableDiagram>
+          </DiagramContent>
+        </DiagramViewer>
+      </DiagramContainer>
     </Container>
   );
 };

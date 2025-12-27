@@ -1,53 +1,40 @@
-/**
- * Pascal flowchart generator
- * Converts Pascal source code to Mermaid flowchart
- */
-
-import Parser from 'tree-sitter';
-import Pascal from 'tree-sitter-pascal';
-import { ctx } from '../mermaid/context.mjs';
-import { walk } from '../walkers/walk.mjs';
+import { extractPascal } from '../extractors/pascal-extractor.mjs';
+import { normalizePascal } from '../normalizer/normalize-pascal.mjs';
 import { mapNodePascal } from '../map-node-pascal.mjs';
+import { walk } from '../walkers/walk.mjs';
+import { ctx } from '../mermaid/context.mjs';
 
 /**
- * Generate Mermaid flowchart from Pascal source code
+ * Generate VTU-style Mermaid flowchart from Pascal source code
  * @param {string} sourceCode - Pascal source code
- * @returns {string} Mermaid flowchart diagram
+ * @returns {string} - Mermaid flowchart
  */
 export function generateFlowchart(sourceCode) {
-  // Initialize parser
-  const parser = new Parser();
-  parser.setLanguage(Pascal);
   
-  // Parse the source code
-  const tree = parser.parse(sourceCode);
+  // 1. Extract AST using Tree-sitter
+  const ast = extractPascal(sourceCode);
   
-  // Create context for flowchart generation
+  // 2. Normalize AST to unified node types
+  const normalized = normalizePascal(ast);
+  
+  // 3. Create context for flowchart generation
   const context = ctx();
   
-  // Add handle function to context
-  context.handle = (node) => {
-    if (node && node.type) {
-      mapNodePascal(node, context);
+  // 4. Walk and generate nodes using mapping functions
+  if (normalized) {
+    // Find the main program and process its body
+    if (normalized.type === 'Program' && normalized.body) {
+      // Process each statement in the program body
+      normalized.body.forEach(statement => {
+        walk(statement, context);
+      });
     }
-  };
-  
-  // Manually set the start node
-  context.add('N1', '(["start"])');
-  context.setLast('N1');
-  
-  // Walk the AST and generate flowchart elements
-  walk(tree.rootNode, context);
-  
-  // Add end node
-  const endId = context.next();
-  context.add(endId, '(["end"])');
-  
-  // Connect last node to end node
-  if (context.last) {
-    context.addEdge(context.last, endId);
   }
   
-  // Return the generated Mermaid diagram
+  // The END node will be added by the emit function
+  // Resolve any pending joins to the END node that will be added by emit
+  context.resolvePendingJoins('END');
+  
+  // 5. Emit final Mermaid flowchart
   return context.emit();
 }

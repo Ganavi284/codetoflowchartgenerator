@@ -9,6 +9,9 @@ export const shapes = {
   circle: '(({}))',
   rhombus: '{{{}}}',
   
+  // Decision shape
+  decision: '{{{}}}',
+  
   // Additional shapes
   hexagon: '{{{}}}',
   database: '[[{}]]',

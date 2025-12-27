@@ -1,0 +1,24 @@
+flowchart TD
+N1(["start"])
+N2[x = 5]
+N3[y = 10]
+N4[["calculate_sum(x, y)"]]
+N5[/"print("Program completed")"/]
+N6{"if __name__ == "__main__""}
+N7[["main()"]]
+N8(["end"])
+subgraph SG1["function calculate_sum"]
+end
+subgraph SG2["function calculate_sum"]
+end
+N1 --> N2
+N2 --> N2
+N2 --> N3
+N3 --> N3
+N3 --> N4
+N4 --> N5
+N5 --> N5
+N5 --> N6
+N6 --> N6
+N6 --> N7
+N7 --> N8

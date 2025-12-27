@@ -1,0 +1,22 @@
+flowchart TD
+  START(["start"])
+  N1["var age: integer"]
+  N2[/"write('Enter age: ')"/]
+  N3[/"readln(age)"/]
+  N4{"if age >= 18) and (age <= 60"}
+  N5[/"writeln('Eligible for job')"/]
+  N6{"if age > 60"}
+  N7[/"writeln('Retired')"/]
+  N8[/"writeln('Not eligible')"/]
+  END(["end"])
+  START --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 --> N4
+  N4 -- Yes --> N5
+  N4 -- No --> N6
+  N6 -- Yes --> N7
+  N6 -- No --> N8
+  N7 --> END
+  N8 --> END
+  N5 --> END

@@ -1,40 +1,50 @@
-/**
- * IO function mapping for Python language
- * Handles input/output operations with proper text sanitization
- */
-import { shapes } from "../mermaid/shapes.mjs";
-import { linkNext } from "../../c/mappings/common/common.mjs";
-
-// Helper function to sanitize text by removing inner double quotes but preserving outer quotes for Mermaid
-const sanitizeText = (text) => {
-  if (!text) return "";
-  // Remove double quotes from within the text but preserve the outer structure
-  let sanitized = text.replace(/"/g, '');
-  // Escape any remaining special characters for Mermaid
-  sanitized = sanitized.replace(/\\/g, '\\\\');
-  return sanitized;
-};
-
-// Helper function to create IO shape with sanitized text enclosed in double quotes
-const ioShape = (text) => {
-  const sanitizedText = sanitizeText(text);
-  // Use parallelogram shape for IO operations with text enclosed in double quotes
-  return shapes.parallelogram.replace('{}', `"${sanitizedText}"`);
-};
+import { shapes } from '../mermaid/shapes.mjs';
+import { linkNext } from '../../c/mappings/common/common.mjs';
 
 /**
- * Map IO operations to Mermaid flowchart nodes
- * Creates parallelogram nodes for input/output operations
- * @param {Object} node - Normalized IO node
+ * Map I/O statement to Mermaid flowchart nodes
+ * Handles I/O operations that may include function calls
+ * @param {Object} node - Normalized I/O node
  * @param {Object} ctx - Context for flowchart generation
  */
 export function mapIO(node, ctx) {
   if (!node || !ctx) return;
+
+  const id = ctx.next();
   
-  // Create IO node
-  const ioId = ctx.next();
-  const ioText = node.text || "IO operation";
-  ctx.add(ioId, ioShape(ioText));
-  
-  linkNext(ctx, ioId);
+  // Check if this I/O operation contains an inner function call
+  if (node.innerFunctionCall) {
+    // Create the I/O node with the full text
+    ctx.add(id, shapes.parallelogram.replace('{}', node.text));
+    
+    // Connect to previous node
+    if (ctx.last) {
+      ctx.addEdge(ctx.last, id);
+    }
+    ctx.last = id;
+    
+    // Execute the inner function call if function definitions are available
+    if (ctx.functionDefinitions) {
+      const funcDef = ctx.functionDefinitions.get(node.innerFunctionCall.name);
+      if (funcDef && funcDef.body) {
+        console.log(`DEBUG: I/O operation contains function call: ${node.innerFunctionCall.name}`);
+        
+        // Execute the function body in a subgraph if executeFunctionBody method exists
+        if (typeof ctx.executeFunctionBody === 'function') {
+          const subgraphId = ctx.executeFunctionBody(funcDef, node.innerFunctionCall.name);
+          
+          // Optionally connect the I/O node to the subgraph
+          if (subgraphId) {
+            console.log(`DEBUG: Created subgraph ${subgraphId} for function ${node.innerFunctionCall.name}`);
+          }
+        }
+      }
+    }
+  } else {
+    // Regular I/O operation without function call
+    ctx.add(id, shapes.parallelogram.replace('{}', node.text));
+    
+    // Connect to previous node
+    linkNext(ctx, id);
+  }
 }

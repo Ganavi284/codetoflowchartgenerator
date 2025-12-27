@@ -13,46 +13,28 @@ const ioShape = (text) => shapes.io.replace('{}', text);
 export function mapIO(node, ctx) {
   if (!node || !ctx) return;
   
-  // Create IO node
-  const ioId = ctx.next();
   const ioText = node.text || "IO operation";
-  ctx.add(ioId, ioShape(ioText));
   
-  // Handle if statement branch connections
-  if (ctx.ifConditionId) {
-    if (!ctx.thenBranchConnected) {
-      // This is the first node in the then branch
-      ctx.addEdge(ctx.ifConditionId, ioId, "Yes");
-      ctx.thenBranchConnected = true;
-      ctx.thenBranchLast = ioId; // Track the last node in then branch
-      ctx.last = ioId;
-      return;
-    } else if (ctx.hasElseBranch && !ctx.elseBranchConnected) {
-      // This is the first node in the else branch
-      ctx.addEdge(ctx.ifConditionId, ioId, "No");
-      ctx.elseBranchConnected = true;
-      ctx.elseBranchLast = ioId; // Track the last node in else branch
-      ctx.last = ioId;
-      return;
-    } else if (ctx.thenBranchConnected && !ctx.elseBranchConnected) {
-      // This is a subsequent node in the then branch
-      if (ctx.thenBranchLast) {
-        ctx.addEdge(ctx.thenBranchLast, ioId);
-        ctx.thenBranchLast = ioId;
-      }
-      ctx.last = ioId;
-      return;
-    } else if (ctx.elseBranchConnected) {
-      // This is a subsequent node in the else branch
-      if (ctx.elseBranchLast) {
-        ctx.addEdge(ctx.elseBranchLast, ioId);
-        ctx.elseBranchLast = ioId;
-      }
-      ctx.last = ioId;
-      return;
-    }
+  // Filter out Pascal block keywords that shouldn't create flowchart nodes
+  if (ioText.trim().toLowerCase() === 'end' || 
+      ioText.trim().toLowerCase() === 'begin' ||
+      ioText.trim().toLowerCase() === 'then' ||
+      ioText.trim().toLowerCase() === 'else') {
+    // Skip creating nodes for structural keywords
+    return;
   }
   
-  // Normal connection
-  linkNext(ctx, ioId);
+  // Create IO node
+  const ioId = ctx.next();
+  ctx.add(ioId, ioShape(ioText));
+  
+  // Use the shared linking logic which handles if statement branch connections
+  // If we're in a loop, use the loop body connection method
+  if (ctx.inLoop && typeof ctx.handleLoopBodyConnection === 'function') {
+    ctx.handleLoopBodyConnection(ioId);
+  } else if (typeof ctx.handleBranchConnection === 'function' && ctx.currentIf && ctx.currentIf()) {
+    ctx.handleBranchConnection(ioId);
+  } else {
+    linkNext(ctx, ioId);
+  }
 }

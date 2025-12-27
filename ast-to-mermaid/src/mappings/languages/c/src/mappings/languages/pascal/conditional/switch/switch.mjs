@@ -66,22 +66,13 @@ export function mapCaseOption(node, ctx) {
 export function mapElseCase(node, ctx) {
   if (!node || !ctx) return;
   
-  // Create process node for else case
-  const elseId = ctx.next();
-  const elseText = "else:";
-  ctx.add(elseId, processShape(elseText));
+  // In Pascal, the else case is just another case end node, not a separate label
+  // We don't create a separate "else:" label node
+  // Instead, we just track that we have an else case for the finalize context
   
-  // Store the else case for later connection
-  if (!ctx.caseOptions) {
-    ctx.caseOptions = [];
-  }
-  ctx.caseOptions.push(elseId);
+  // Store that we have an else case in the context for later connection
+  ctx.hasElseCase = true;
   
-  // Connect from case node to else case
-  if (ctx.currentCaseId) {
-    ctx.addEdge(ctx.currentCaseId, elseId);
-  }
-  
-  // Set this as the last node so the body connects to it
-  ctx.last = elseId;
+  // We don't set ctx.last here because the actual else case action 
+  // will be processed as a regular node and will set ctx.last appropriately
 }

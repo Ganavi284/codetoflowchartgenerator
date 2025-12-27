@@ -1,0 +1,15 @@
+flowchart TD
+  START(["start"])
+  N1["var i, j: integer"]
+  N2["i := 1"]
+  N3{"i <= 3"}
+  N4["begin for j := 1 to 3 do begin if j > i then writeln('j > i: ', j, ' > ', i) else writeln('j <= i: ', j, ' <= ', i); end; end; end."]
+  N5[i := i + 1]
+  END(["end"])
+  START --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 -- Yes --> N4
+  N4 --> N5
+  N5 --> N3
+  N5 --> END

@@ -1,0 +1,10 @@
+flowchart TD
+N1(["start"])
+N2[["greet()"]]
+N4(["end"])
+subgraph SG1["function greet"]
+SGN3[/"print("Hello, World!")"/]
+SGN3 --> SGN3
+end
+N1 --> N2
+N2 --> N4

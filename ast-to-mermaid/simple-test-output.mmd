@@ -1,0 +1,24 @@
+flowchart TD
+N1(["start"])
+N2[x = 10]
+N3{"if x > 0"}
+N4[/"print('x is positive')"/]
+N5[/"print('x is not positive')"/]
+N6>"return"]
+N7{"if __name__ == "__main__""}
+N8[["main()"]]
+N9(["end"])
+N1 --> N2
+N2 --> N2
+N2 --> N3
+N3 --> N3
+N3 --> N4
+N4 --> N4
+N4 --> N5
+N5 --> N5
+N5 --> N6
+N6 --> N6
+N6 --> N7
+N7 --> N7
+N7 --> N8
+N8 --> N9

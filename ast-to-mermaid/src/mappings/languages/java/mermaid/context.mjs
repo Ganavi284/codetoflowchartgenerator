@@ -14,13 +14,18 @@ export function ctx(sharedState = null) {
     last: null,
     switchEndNodes: [],
     pendingBreaks: [],
+    pendingLoops: [],
     currentSwitchId: null,
+    currentLoop: null,
     inLoop: false,
     loopContinueNode: null,
     deferredStatements: [],
     ifStack: [],
     pendingJoins: [],
     previousCaseId: null,  // Track previous case for fall-through handling
+    functionMap: {}, // Map of function names to their definitions
+    subgraphIds: {}, // Map of function names to their subgraph IDs
+    visited: new Set(), // Set to track visited AST nodes to prevent duplicate processing
     
     next() {
       return `N${state.nodeId++}`;
@@ -35,11 +40,21 @@ export function ctx(sharedState = null) {
     },
     
     addEdge(from, to, label = null) {
-      if (label) {
-        this.edges.push(`${from} -- ${label} --> ${to}`);
-      } else {
-        this.edges.push(`${from} --> ${to}`);
+      if (!from || !to) return;
+      
+      const edge = label ? `${from} -- ${label} --> ${to}` : `${from} --> ${to}`;
+      
+      // For 'No' labeled edges, check if this 'from' node already has a 'No' edge
+      // to prevent duplicate No branches in if-else-if chains
+      if (label === 'No') {
+        const existingNoEdge = this.edges.find(e => e.startsWith(`${from} -- No -->`));
+        if (existingNoEdge) {
+          // If there's already a 'No' edge from this node, don't add another
+          return;
+        }
       }
+      
+      this.edges.push(edge);
     },
     
     setLast(id) {
@@ -47,7 +62,10 @@ export function ctx(sharedState = null) {
     },
 
     fork() {
-      return ctx(state);
+      const newCtx = ctx(state);
+      // Copy the visited set to the new context
+      newCtx.visited = new Set(this.visited);
+      return newCtx;
     },
 
     addRaw(line) {
@@ -64,6 +82,73 @@ export function ctx(sharedState = null) {
       // Placeholder for legacy calls. Branch handling now occurs via join queue.
     },
 
+    // Add function to create connections between function calls and definitions
+    createFunctionConnections() {
+      // First handle explicitly stored function calls
+      if (this.functionCalls && this.subgraphIds) {
+        this.functionCalls.forEach(callInfo => {
+          const functionName = callInfo.functionName;
+          const callId = callInfo.callId;
+          
+          if (this.subgraphIds[functionName]) {
+            const subgraphId = this.subgraphIds[functionName];
+            // Add a bidirectional connection from the function call to the subgraph
+            this.edges.push(`${callId} <--> ${subgraphId}`);
+          }
+        });
+      }
+      
+      // Then scan through all nodes to find function calls in node texts
+      // Only create connections if they don't already exist to avoid duplicates
+      if (this.subgraphIds && this.nodes) {
+        // Create a set of existing function connections to avoid duplicates
+        const existingConnections = new Set();
+        this.edges.forEach(edge => {
+          if (edge.includes(' <--> SG')) { // Look for function connections
+            existingConnections.add(edge);
+          }
+        });
+        
+        // Create a map of function names to subgraph IDs for quick lookup
+        const functionRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g;
+        
+        this.nodes.forEach(nodeLine => {
+          // Check if this is a regular node (not a subgraph declaration)
+          if (nodeLine.startsWith('N') && !nodeLine.startsWith('subgraph')) {
+            // Extract the node ID (e.g., N5)
+            const nodeIdMatch = nodeLine.match(/^N\d+/);
+            if (nodeIdMatch) {
+              const nodeId = nodeIdMatch[0];
+              
+              // Look for function calls in the node text
+              const nodeText = nodeLine.substring(nodeId.length);
+              let match;
+              while ((match = functionRegex.exec(nodeText)) !== null) {
+                const functionName = match[1];
+                
+                // Skip common Java methods that are not user-defined
+                if (['if', 'for', 'while', 'switch', 'return', 'break', 'continue', 'System'].includes(functionName)) {
+                  continue;
+                }
+                
+                // Check if this is a user-defined function
+                if (this.subgraphIds[functionName]) {
+                  const subgraphId = this.subgraphIds[functionName];
+                  const newEdge = `${nodeId} <--> ${subgraphId}`;
+                  
+                  // Only add the connection if it doesn't already exist
+                  if (!existingConnections.has(newEdge)) {
+                    this.edges.push(newEdge);
+                    existingConnections.add(newEdge);
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    },
+    
     // --- If handling helpers ------------------------------------------------
     registerIf(conditionId, hasElse) {
       const frame = {
@@ -118,6 +203,7 @@ export function ctx(sharedState = null) {
     completeIf() {
       const frame = this.ifStack.pop();
       if (!frame) return null;
+      
       this.queueJoinForFrame(frame);
       
       // Check if this if was inside a parent if's branch
@@ -252,7 +338,54 @@ export function ctx(sharedState = null) {
       // Don't clear this.last - it's needed for connecting to next statement
     },
     
+    completeLoop() {
+      // Connect the end of the loop body back to the loop condition (this represents the update step for for loops and condition re-check for while loops)
+      // Get the most recent pending loop
+      if (this.pendingLoops && this.pendingLoops.length > 0) {
+        const loopInfo = this.pendingLoops[this.pendingLoops.length - 1];
+        
+        if (loopInfo.type === 'do-while') {
+          // For do-while loops: connect end of body back to condition, 
+          // and condition has Yes/No branches
+          if (this.last && loopInfo.loopId) {
+            // Connect the last processed node (end of loop body) back to the loop condition
+            this.addEdge(this.last, loopInfo.loopId);
+            
+            // Set up the condition node with Yes/No branches
+            // Yes branch goes back to first body statement
+            if (this.doWhileFirstBodyNodeId) {
+              this.addEdge(loopInfo.loopId, this.doWhileFirstBodyNodeId, 'Yes');
+            }
+            // No branch will be handled by the normal flow (next statement after loop)
+            // which is already set by this.last = loopInfo.loopId
+          }
+        } else {
+          // For for and while loops: connect end of body back to condition
+          if (this.last && loopInfo.loopId) {
+            // Connect the last processed node (end of loop body) back to the loop condition
+            // This connection should not have a label as it represents the loop continuation
+            this.addEdge(this.last, loopInfo.loopId);
+          }
+        }
+        
+        // Update the last pointer to the loop condition node
+        // This ensures that the next statement connects from the loop as a whole
+        this.last = loopInfo.loopId;
+        
+        // Remove the processed loop
+        this.pendingLoops.pop();
+      }
+      
+      // Clear loop-specific context
+      this.inLoop = false;
+      this.loopContinueNode = null;
+      this.currentLoop = null;
+    },
+    
     emit() {
+      // Create function connections before emitting
+      this.createFunctionConnections();
+      
       return [
         'flowchart TD',
         ...this.nodes,

@@ -23,8 +23,8 @@ export function mapIfStatement(node, ctx, mapper) {
   const isElseIf = currentIf && currentIf.activeBranch === 'else';
   const prefix = isElseIf ? 'else if ' : 'if ';
   
-  // Remove parentheses from condition text
-  let conditionText = node.test?.text || "condition";
+  // Get condition text from node.text first, then fall back to node.test.text
+  let conditionText = node.text || node.test?.text || "condition";
   if (conditionText.startsWith('(') && conditionText.endsWith(')')) {
     conditionText = conditionText.substring(1, conditionText.length - 1);
   }
@@ -58,6 +58,11 @@ export function mapIfStatement(node, ctx, mapper) {
           mapper(stmt, ctx);
         }
       });
+    } else {
+      // Handle single statement (not in a block)
+      if (mapper) {
+        mapper(node.consequent, ctx);
+      }
     }
     
     // Exit the then branch

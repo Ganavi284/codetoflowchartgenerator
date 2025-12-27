@@ -1,660 +1,400 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Button, Typography, Paper, TextField, IconButton } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { health as ollamaHealth, listModels as ollamaListModels, pullModel as ollamaPullModel, ragConvert as ollamaRagConvert } from '../services/ollama';
 import BackButton from '../components/BackButton';
-import { detectLanguageLocal, detectLanguageAPI } from '../services/api';
-import { FaPaperPlane } from 'react-icons/fa';
-import { styled } from '@mui/material/styles';
-import MonacoEditor from '@monaco-editor/react';
+import { health as ollamaHealth, listModels as ollamaListModels, ragConvert as ollamaRagConvert } from '../services/ollama';
 import ThemeSwitch from '../components/ThemeSwitchButton';
 
 import styledComp from 'styled-components';
 
-const Container = styledComp.div<{ theme?: { background: string, text: string } }> `
-  background-color: ${props => props.theme?.background || '#f5f7fa'};
+// Simple styled components without MUI conflicts
+const Container = styledComp.div<{ theme?: { background: string, text: string, card: string, border: string, mode: string } }>`
+  background: ${props => props.theme?.mode === 'dark' 
+    ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' 
+    : 'linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%)'};
   color: ${props => props.theme?.text || '#222'};
   min-height: 100vh;
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+  transition: background-color 0.3s ease;
+  
+  &:before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+    z-index: 0;
+  }
 `;
 
-const ChatContainer = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  flexDirection: 'column',
-  height: '600px',
-  border: '1px solid #333',
-  borderRadius: '8px',
-  backgroundColor: '#1e1e1e',
-  overflow: 'hidden'
-}));
+const ContentWrapper = styledComp.div`
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 2rem;
+  position: relative;
+  z-index: 1;
+`;
 
-const ChatMessages = styled(Box)(({ theme }) => ({
-  flexGrow: 1,
-  overflowY: 'auto',
-  padding: theme.spacing(2),
-  display: 'flex',
-  flexDirection: 'column',
-  gap: theme.spacing(2)
-}));
+const Header = styledComp.div`
+  text-align: center;
+  margin-bottom: 2rem;
+`;
 
-const ChatMessage = styled(Box)(({ theme }) => ({
-  maxWidth: '80%',
-  padding: theme.spacing(1.5),
-  borderRadius: '8px',
-  '&.user': {
-    alignSelf: 'flex-end',
-    backgroundColor: '#007acc',
-    color: 'white'
-  },
-  '&.ai': {
-    alignSelf: 'flex-start',
-    backgroundColor: '#333',
-    color: 'white'
+const Title = styledComp.h1<{ theme?: { text: string, mode: string } }>`
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: ${props => props.theme?.mode === 'dark' 
+    ? 'linear-gradient(90deg, #93c5fd, #c4b5fd)' 
+    : 'linear-gradient(90deg, #3b82f6, #8b5cf6)'};
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1rem;
+  text-align: center;
+  position: relative;
+  
+  &:after {
+    content: '';
+    display: block;
+    width: 100px;
+    height: 4px;
+    background: ${props => props.theme?.mode === 'dark' 
+      ? 'linear-gradient(90deg, #93c5fd, #c4b5fd)' 
+      : 'linear-gradient(90deg, #3b82f6, #8b5cf6)'};
+    margin: 1rem auto;
+    border-radius: 2px;
   }
-}));
+`;
 
-const ChatInputContainer = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  padding: theme.spacing(1),
-  borderTop: '1px solid #333',
-  backgroundColor: '#2d2d30'
-}));
+const Description = styledComp.p<{ theme?: { text: string } }>`
+  font-size: 1.2rem;
+  color: ${props => props.theme?.text || '#4b5563'};
+  margin-bottom: 2rem;
+  text-align: center;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.6;
+  opacity: 0.9;
+`;
 
-// Styled components for the chat interface
-const ChatHeader = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(1, 2),
-  borderBottom: '1px solid #333',
-  backgroundColor: '#2d2d30',
-  fontWeight: 600,
-  color: 'white'
-}));
-
-const ChatBubbleContainer = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: theme.spacing(1)
-}));
-
-const ChatBubble = styled(Box)(({ theme, role }) => ({
-  maxWidth: '80%',
-  padding: theme.spacing(1.5),
-  borderRadius: '8px',
-  color: 'white',
-  ...(role === 'user' ? {
-    alignSelf: 'flex-end',
-    backgroundColor: '#007acc'
-  } : {
-    alignSelf: 'flex-start',
-    backgroundColor: '#333'
-  })
-}));
-
-const CodeBlock = styled('pre')(({ theme }) => ({
-  backgroundColor: '#1e1e1e',
-  borderRadius: '4px',
-  padding: theme.spacing(1.5),
-  overflowX: 'auto',
-  margin: theme.spacing(1, 0),
-  '& code': {
-    fontFamily: 'Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace',
-    fontSize: '0.9rem',
-    lineHeight: '1.5'
-  },
-  // Basic syntax highlighting styles
-  '& .language-javascript, & .language-js': {
-    color: '#d4d4d4',
-    '.comment': { color: '#6a9955' },
-    '.keyword': { color: '#569cd6' },
-    '.string': { color: '#ce9178' },
-    '.number': { color: '#b5cea8' },
-    '.function': { color: '#dcdcaa' },
-    '.operator': { color: '#d4d4d4' }
-  },
-  '& .language-python, & .language-py': {
-    color: '#d4d4d4',
-    '.comment': { color: '#6a9955' },
-    '.keyword': { color: '#569cd6' },
-    '.string': { color: '#ce9178' },
-    '.number': { color: '#b5cea8' },
-    '.function': { color: '#dcdcaa' },
-    '.operator': { color: '#d4d4d4' }
-  },
-  '& .language-java': {
-    color: '#d4d4d4',
-    '.comment': { color: '#6a9955' },
-    '.keyword': { color: '#569cd6' },
-    '.string': { color: '#ce9178' },
-    '.number': { color: '#b5cea8' },
-    '.function': { color: '#dcdcaa' },
-    '.operator': { color: '#d4d4d4' }
-  },
-  '& .language-c, & .language-cpp': {
-    color: '#d4d4d4',
-    '.comment': { color: '#6a9955' },
-    '.keyword': { color: '#569cd6' },
-    '.string': { color: '#ce9178' },
-    '.number': { color: '#b5cea8' },
-    '.function': { color: '#dcdcaa' },
-    '.operator': { color: '#d4d4d4' }
+const ChatContainer = styledComp.div`
+  display: flex;
+  flex-direction: column;
+  height: 600px;
+  border: 1px solid #333;
+  border-radius: 20px;
+  background-color: #1e1e1e;
+  overflow: hidden;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(12px);
+  position: relative;
+  
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
   }
-}));
+`;
 
-// Add styled components for the chat interface
-const ChatPanel = styled(Box)(({ theme }) => ({
-  height: '600px',
-  border: '1px solid #333',
-  borderRadius: '4px',
-  overflow: 'hidden',
-  backgroundColor: '#1e1e1e',
-  display: 'flex',
-  flexDirection: 'column'
-}));
+const MessagesContainer = styledComp.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+`;
 
-const ChatMessagesContainer = styled(Box)(({ theme }) => ({
-  flexGrow: 1,
-  overflowY: 'auto',
-  padding: theme.spacing(2),
-  display: 'flex',
-  flexDirection: 'column',
-  gap: theme.spacing(2)
-}));
+const Message = styledComp.div<{ isUser?: boolean }>`
+  max-width: 80%;
+  padding: 1rem 1.5rem;
+  border-radius: 16px;
+  align-self: ${props => props.isUser ? 'flex-end' : 'flex-start'};
+  background-color: ${props => props.isUser ? '#3b82f6' : '#333'};
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+`;
+
+const InputContainer = styledComp.div`
+  display: flex;
+  padding: 1.2rem;
+  background-color: #252526;
+  border-top: 1px solid #333;
+`;
+
+const InputField = styledComp.input`
+  flex: 1;
+  padding: 0.9rem 1.2rem;
+  border: none;
+  border-radius: 14px;
+  background-color: #333;
+  color: white;
+  font-size: 1rem;
+  
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #3b82f6;
+  }
+`;
+
+const SendButton = styledComp.button`
+  margin-left: 0.8rem;
+  padding: 0.9rem 1.5rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+`;
+
+const GenerateButton = styledComp.button`
+  display: block;
+  margin: 1.5rem auto;
+  padding: 1.1rem 2.2rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(16, 185, 129, 0.5);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+`;
+
+const StatusMessage = styledComp.div<{ isError?: boolean }>`
+  text-align: center;
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 14px;
+  background-color: ${props => props.isError ? '#fee2e2' : '#dbeafe'};
+  color: ${props => props.isError ? '#b91c1c' : '#1e40af'};
+  font-weight: 500;
+`;
+
+const ModelSelector = styledComp.select`
+  padding: 0.7rem 1rem;
+  border-radius: 14px;
+  background-color: #333;
+  color: white;
+  border: 1px solid #444;
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #3b82f6;
+  }
+`;
 
 const WriteWithAI: React.FC = () => {
-    const [promptText, setPromptText] = useState('');
-    const [generatedCode, setGeneratedCode] = useState('');
-    const [chatMessages, setChatMessages] = useState<Array<{role: string, content: string}>>([]);
-    const navigate = useNavigate();
-    const [models, setModels] = useState<string[]>([]);
-    const [selectedModel, setSelectedModel] = useState<string>('');
-    const [generating, setGenerating] = useState(false);
-    const [ollamaRunning, setOllamaRunning] = useState(false);
-    const promptEditorRef = useRef<any>(null);
-    const codeOutputRef = useRef<any>(null);
-    const chatMessagesRef = useRef<HTMLDivElement>(null);
-    const [detectedLanguage, setDetectedLanguage] = useState<string>('plaintext');
-    const [isDetecting, setIsDetecting] = useState(false);
-    const [aiResponses, setAiResponses] = useState<Array<{content: string, codeBlocks: Array<{language: string, code: string}>}>>([]);
+  const [messages, setMessages] = useState<Array<{ text: string; isUser: boolean }>>([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [models, setModels] = useState<string[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string>('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
-    // Add keyboard event listeners for navigation and actions
-    useEffect(() => {
-      const handleKeyDown = (e: KeyboardEvent) => {
-        // Ctrl+Shift+G to generate code
-        if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'g') {
-          e.preventDefault();
-          if (promptText.trim()) {
-            // Find and click the generate button
-            const generateButton = document.querySelector('button.MuiButton-contained');
-            if (generateButton) {
-              (generateButton as HTMLButtonElement).click();
-            }
-          }
+  // Add keyboard event listeners for navigation and actions
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Shift+W to write with AI
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'w') {
+        e.preventDefault();
+        // Focus on input field
+        const input = document.querySelector('input');
+        if (input) {
+          (input as HTMLInputElement).focus();
         }
-        // Ctrl+Shift+U to use code
-        else if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'u') {
-          e.preventDefault();
-          if (generatedCode.trim()) {
-            navigate('/code-entry', { state: { code: generatedCode } });
-          }
-        }
-        // Ctrl+Enter to send prompt in chat
-        else if (e.ctrlKey && e.key === 'Enter') {
-          e.preventDefault();
-          if (promptText.trim()) {
-            // Find and click the send button
-            const sendButton = document.querySelector('button.MuiIconButton-root');
-            if (sendButton) {
-              (sendButton as HTMLButtonElement).click();
-            }
-          }
-        }
-        // Ctrl+Shift+B to go back
-        else if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'b') {
-          e.preventDefault();
-          navigate(-1);
-        }
-      };
-  
-      window.addEventListener('keydown', handleKeyDown);
-      return () => {
-        window.removeEventListener('keydown', handleKeyDown);
-      };
-    }, [promptText, generatedCode, navigate]);
-
-    useEffect(() => {
-        (async () => {
-            const tags = await ollamaListModels();
-            const names = tags.map(m => m.name || m.model).filter(Boolean);
-            setModels(names);
-            if (!selectedModel) setSelectedModel(names[0] || '');
-        })();
-    }, []);
-
-    // Auto-scroll chat to bottom
-    useEffect(() => {
-        if (chatMessagesRef.current) {
-            chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
-        }
-    }, [chatMessages]);
-
-    // Auto-scroll AI responses to bottom
-    useEffect(() => {
-        if (codeOutputRef.current) {
-            codeOutputRef.current.scrollTop = codeOutputRef.current.scrollHeight;
-        }
-    }, [aiResponses]);
-
-    // Auto-detect language of generated code
-    useEffect(() => {
-        const code = generatedCode.trim();
-        if (code) {
-            // First try fast local detection for immediate feedback
-            const localDetected = detectLanguageLocal(code);
-            const langMap: Record<string, string> = {
-                js: 'javascript',
-                ts: 'typescript',
-                python: 'python',
-                java: 'java',
-                c: 'c',
-                cpp: 'cpp',
-            };
-            setDetectedLanguage(localDetected ? langMap[localDetected] || 'plaintext' : 'plaintext');
-            
-            // Then use API detection for more accurate results
-            const apiDetect = async () => {
-                setIsDetecting(true);
-                try {
-                    const apiDetected = await detectLanguageAPI(code);
-                    // Map API response to our expected types
-                    const mappedLanguage = apiDetected === 'javascript' ? 'javascript' : 
-                                         apiDetected === 'typescript' ? 'typescript' : 
-                                         apiDetected === 'python' ? 'python' : 
-                                         apiDetected === 'java' ? 'java' : 
-                                         apiDetected === 'c' ? 'c' : 
-                                         apiDetected === 'cpp' ? 'cpp' : 
-                                         'plaintext';
-                    
-                    setDetectedLanguage(mappedLanguage);
-                } catch (error) {
-                    // If API detection fails, fall back to local detection
-                    console.warn('API language detection failed, falling back to local detection:', error);
-                    const localDetected = detectLanguageLocal(code);
-                    const langMap: Record<string, string> = {
-                        js: 'javascript',
-                        ts: 'typescript',
-                        python: 'python',
-                        java: 'java',
-                        c: 'c',
-                        cpp: 'cpp',
-                    };
-                    setDetectedLanguage(localDetected ? langMap[localDetected] || 'plaintext' : 'plaintext');
-                } finally {
-                    setIsDetecting(false);
-                }
-            };
-            
-            apiDetect();
-        } else {
-            setDetectedLanguage('plaintext');
-        }
-    }, [generatedCode]);
-
-    const parseAIResponse = (response: string) => {
-        if (!response) return { content: '', codeBlocks: [] };
-        
-        // Split the response into text and code blocks
-        const parts = response.split(/(```[\s\S]*?```)/g);
-        const codeBlocks: Array<{language: string, code: string}> = [];
-        let content = '';
-        
-        parts.forEach(part => {
-            if (part.startsWith('```') && part.endsWith('```')) {
-                // This is a code block
-                const lines = part.slice(3, -3).split('\n');
-                const firstLine = lines[0] || '';
-                const code = lines.slice(1).join('\n').trim();
-                
-                // Try to detect language from the first line (e.g., ```javascript)
-                let language = 'plaintext';
-                if (firstLine) {
-                    const langMap: Record<string, string> = {
-                        js: 'javascript',
-                        ts: 'typescript',
-                        py: 'python',
-                        java: 'java',
-                        c: 'c',
-                        cpp: 'cpp',
-                        javascript: 'javascript',
-                        typescript: 'typescript',
-                        python: 'python'
-                    };
-                    language = langMap[firstLine] || firstLine || 'plaintext';
-                }
-                
-                codeBlocks.push({ language, code });
-                // Add a placeholder in the content
-                content += `[CODE_BLOCK_${codeBlocks.length - 1}]`;
-            } else {
-                // This is regular text
-                content += part;
-            }
-        });
-        
-        return { content, codeBlocks };
-    };
-
-    const handleGenerateCode = async () => {
-        const prompt = promptText.trim();
-        if (!prompt) return;
-        
-        // Add user message to chat
-        const newMessages = [...chatMessages, { role: 'user', content: prompt }];
-        setChatMessages(newMessages);
-        setPromptText('');
-        
-        try {
-            setGenerating(true);
-            
-            // Quick health check with timeout
-            const healthPromise = ollamaHealth();
-            const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Health check timeout')), 2000)
-            );
-            
-            const ok = await Promise.race([healthPromise, timeoutPromise]).catch(() => false);
-            if (!ok) {
-                setGeneratedCode('// Error: Ollama daemon is not reachable at http://localhost:11434');
-                setGenerating(false);
-                setChatMessages([...newMessages, { role: 'ai', content: 'Error: Ollama daemon is not reachable at http://localhost:11434' }]);
-                return;
-            }
-            
-            let names = models;
-            if (names.length === 0) {
-                const tags = await ollamaListModels();
-                names = tags.map(m => m.name || m.model).filter(Boolean);
-                setModels(names);
-            }
-            let modelToUse = selectedModel || names[0] || '';
-            if (!modelToUse) {
-                setGeneratedCode('// Error: No Ollama model available. Please pull a model in Ollama.');
-                setGenerating(false);
-                setChatMessages([...newMessages, { role: 'ai', content: 'Error: No Ollama model available. Please pull a model in Ollama.' }]);
-                return;
-            }
-            setSelectedModel(modelToUse);
-            
-            // Show immediate feedback
-            setGeneratedCode(`// ⚡ Generating with ${modelToUse}...\n// It will take a few seconds to complete`);
-            
-            // Use RAG convert with 'generate' mode
-            const response = await ollamaRagConvert(modelToUse, prompt, 'generate');
-            console.log('[WriteWithAI] Received response:', response);
-            
-            // Extract code from response - only accept actual code
-            const extractedCode = extractCodeFromResponse(response);
-            console.log('[WriteWithAI] Extracted code:', extractedCode);
-            
-            // Only set the generated code if we actually extracted code
-            if (extractedCode && extractedCode.trim() !== '') {
-                setGeneratedCode(extractedCode);
-                setChatMessages([...newMessages, { role: 'ai', content: 'Code generated successfully. See the code editor for details.' }]);
-            } else {
-                // If no code was extracted, show the full response for debugging
-                setGeneratedCode(`// No valid code could be extracted from the response
-// Full response:
-/*
-${response}
-*/`);
-                setChatMessages([...newMessages, { role: 'ai', content: 'No valid code could be extracted from the response' }]);
-            }
-        } catch (e: any) {
-            const errorMessage = `// Error during generation: ${e?.message || String(e)}`;
-            setGeneratedCode(errorMessage);
-            setChatMessages([...newMessages, { role: 'ai', content: `Error during generation: ${e?.message || String(e)}` }]);
-        } finally {
-            setGenerating(false);
-        }
-    };
-
-    const extractCodeFromResponse = (text: string): string => {
-        if (!text) return '';
-        
-        console.log('[WriteWithAI] Attempting to extract code from response, length:', text.length);
-        console.log('[WriteWithAI] First 200 chars:', text.substring(0, 200));
-        
-        // Method 1: Extract code from ``` delimiters if present
-        const codeBlockRegex = /```(?:[a-zA-Z0-9]+)?\s*\n([\s\S]*?)\n```/;
-        const match = text.match(codeBlockRegex);
-        
-        if (match && match[1]) {
-            const extractedCode = match[1].trim();
-            console.log('[WriteWithAI] Extracted code from ``` delimiters, length:', extractedCode.length);
-            return extractedCode;
-        }
-        
-        // Method 2: If no delimiters, check if response looks like code
-        const trimmedText = text.trim();
-        
-        // Check if it's an error message
-        if (trimmedText.startsWith('//') && trimmedText.includes('Error:')) {
-            console.log('[WriteWithAI] Response is an error message');
-            return trimmedText;  // Return error as-is
-        }
-        
-        // Check if it looks like code (has code patterns)
-        const hasCodePatterns = /(?:#include|import|function|def|class|public|private|const|let|var|program|\bif\b|\bfor\b|\bwhile\b|\breturn\b|\{|\}|;)/.test(trimmedText);
-        
-        if (hasCodePatterns && trimmedText.length > 10) {
-            console.log('[WriteWithAI] Treating entire response as code');
-            return trimmedText;
-        }
-        
-        // No valid code found
-        console.log('[WriteWithAI] No valid code could be extracted');
-        return '';
-    };
-
-    // Simplified helper function that doesn't modify the code
-    const removeInlineComments = (code: string): string => {
-        // For now, just return the code as-is
-        // We might want to add comment removal logic later if needed
-        return code;
-    };
-
-    const handleCopyToCodeEntry = () => {
-        // Check if we have valid code (not empty and not an error message)
-        const isValidCode = generatedCode && 
-                           generatedCode.trim().length > 0 && 
-                           !generatedCode.startsWith('//') && 
-                           !generatedCode.includes('Error:');
-        
-        if (isValidCode) {
-            console.log('[WriteWithAI] Copying code to Code Entry, length:', generatedCode.length);
-            navigate('/code-entry', { state: { code: generatedCode } });
-        } else {
-            console.warn('[WriteWithAI] Cannot copy - invalid or error code');
-        }
-    };
-
-    const handleRunOllamaModel = async () => {
-        // If LLM is already running, stop it
-        if (ollamaRunning) {
-            setOllamaRunning(false);
-            return;
-        }
-
-        // If LLM is not running, start it
-        try {
-            setGenerating(true);
-            const ok = await ollamaHealth();
-            if (!ok) {
-                alert('Ollama daemon is not reachable at http://localhost:11434. Please start Ollama first.');
-                setGenerating(false);
-                return;
-            }
-            let names = models;
-            if (names.length === 0) {
-                const tags = await ollamaListModels();
-                names = tags.map(m => m.name || m.model).filter(Boolean);
-                setModels(names);
-            }
-            let modelToUse = selectedModel || names[0] || '';
-            if (!modelToUse) {
-                alert('No Ollama model available. Please pull a model using Ollama CLI.');
-                setGenerating(false);
-                return;
-            }
-            setSelectedModel(modelToUse);
-            // Ensure the model is present and ready by pulling it
-            await ollamaPullModel(modelToUse);
-            setOllamaRunning(true);
-            alert(`Ollama model "${modelToUse}" is now ready for code generation!`);
-        } catch (e: any) {
-            console.error('Failed to prepare Ollama model:', e);
-            alert(`Failed to prepare Ollama: ${e?.message || String(e)}`);
-        } finally {
-            setGenerating(false);
-        }
-    };
-
-    const handleKeyPress = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleGenerateCode();
-        }
-    };
-
-    // Function to add a message to the chat
-    const addMessage = (role: 'user' | 'ai', content: string) => {
-      // For user messages, we just add them directly
-      if (role === 'user') {
-        setChatMessages(prev => [...prev, { role, content }]);
-        return;
       }
-      
-      // For AI messages, we need to parse the content for code blocks
-      const parsedResponse = parseAIResponse(content);
-      setAiResponses(prev => [...prev, parsedResponse]);
+      // Ctrl+Enter to send message
+      else if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault();
+        // Trigger send button click
+        const sendButton = document.querySelector('button:last-child');
+        if (sendButton) {
+          (sendButton as HTMLButtonElement).click();
+        }
+      }
+      // Ctrl+Shift+B to go back
+      else if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        navigate(-1);
+      }
     };
 
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [navigate]);
 
+  // Auto-scroll to bottom of messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
+  // Load available models
+  useEffect(() => {
+    (async () => {
+      try {
+        const tags = await ollamaListModels();
+        const names = tags.map(m => m.name || m.model).filter(Boolean);
+        setModels(names);
+        if (names.length > 0) {
+          setSelectedModel(names[0]);
+        }
+      } catch (e) {
+        console.error('Failed to load models:', e);
+      }
+    })();
+  }, []);
 
+  const handleSend = async () => {
+    if (!inputValue.trim() || isLoading) return;
 
+    // Add user message
+    const userMessage = inputValue;
+    const newMessages = [...messages, { text: userMessage, isUser: true }];
+    setMessages(newMessages);
+    setInputValue('');
+    setIsLoading(true);
 
-    return (
-        <Container>
-            
-            <Box sx={{ maxWidth: 1300, mx: 'auto', p: 4 }}>
-                <Box sx={{ position: 'fixed', top: 16, left: 16, zIndex: 10 }}>
-                    <BackButton onClick={() => navigate(-1)} />
-                </Box>
-                <ThemeSwitch />
-            <Typography variant="h4" align="center" gutterBottom fontWeight={700}>
-                Write with AI
-            </Typography>
-            <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-                <Box sx={{ display: 'flex', gap: 4, mb: 3 }}>
-                    {/* Left panel - Write Your Prompt (no changes needed) */}
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="subtitle1" gutterBottom fontWeight={600}>
-                            Write Your Prompt
-                        </Typography>
-                        <ChatContainer>
-                            <ChatMessages ref={chatMessagesRef}>
-                                {chatMessages.map((msg, index) => (
-                                    <ChatMessage key={index} className={msg.role}>
-                                        <Typography variant="body2">{msg.content}</Typography>
-                                    </ChatMessage>
-                                ))}
-                                {generating && (
-                                    <ChatMessage className="ai">
-                                        <Typography variant="body2">Generating code...</Typography>
-                                    </ChatMessage>
-                                )}
-                            </ChatMessages>
-                            <ChatInputContainer>
-                                <TextField
-                                    fullWidth
-                                    multiline
-                                    maxRows={3}
-                                    value={promptText}
-                                    onChange={(e) => setPromptText(e.target.value)}
-                                    onKeyPress={handleKeyPress}
-                                    placeholder="Describe the code you want to generate..."
-                                    variant="outlined"
-                                    size="small"
-                                    sx={{ 
-                                        backgroundColor: '#333',
-                                        borderRadius: '4px',
-                                        '& .MuiOutlinedInput-root': {
-                                            '& fieldset': {
-                                                borderColor: '#555',
-                                            },
-                                            '&:hover fieldset': {
-                                                borderColor: '#777',
-                                            },
-                                            '&.Mui-focused fieldset': {
-                                                borderColor: '#007acc',
-                                            },
-                                        },
-                                    }}
-                                    InputProps={{
-                                        style: { color: 'white' }
-                                    }}
-                                />
-                                <IconButton 
-                                    color="primary" 
-                                    onClick={handleGenerateCode}
-                                    disabled={!promptText.trim() || generating}
-                                    sx={{ ml: 1 }}
-                                >
-                                    <FaPaperPlane color="white" />
-                                </IconButton>
-                            </ChatInputContainer>
-                        </ChatContainer>
-                    </Box>
-                    
-                    {/* Right panel - Generated Code (restored to Monaco Editor) */}
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="subtitle1" gutterBottom fontWeight={600}>
-                            Generated Code
-                        </Typography>
-                        <Box sx={{ height: '600px', border: '1px solid #333', borderRadius: '4px', overflow: 'hidden' }}>
-                            <MonacoEditor
-                                height="100%"
-                                language={detectedLanguage}
-                                value={generatedCode}
-                                theme="vs-dark"
-                                options={{
-                                    readOnly: true,
-                                    minimap: { enabled: false },
-                                    scrollBeyondLastLine: false,
-                                    automaticLayout: true,
-                                }}
-                            />
-                        </Box>
-                    </Box>
-                </Box>
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-                    <Button
-                        variant="contained"
-                        color="secondary"
-                        size="large"
-                        onClick={handleCopyToCodeEntry}
-                        disabled={
-                            !generatedCode || 
-                            generatedCode.trim().length === 0 || 
-                            generatedCode.startsWith('//') || 
-                            generatedCode.includes('Error:') ||
-                            generating
-                        }
-                        sx={{ minWidth: 200 }}
-                    >
-                        Copy to Code Entry
-                    </Button>
-                </Box>
-            </Paper>
-        </Box>
+    try {
+      // Check Ollama health
+      const ok = await ollamaHealth();
+      if (!ok) {
+        throw new Error('Ollama daemon is not reachable at http://localhost:11434');
+      }
+
+      // Get response from Ollama
+      const response = await ollamaRagConvert(selectedModel || models[0] || '', userMessage, 'generate');
+      
+      // Add AI response
+      setMessages([...newMessages, { text: response, isUser: false }]);
+    } catch (error: any) {
+      setMessages([...newMessages, { text: `Error: ${error.message}`, isUser: false }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGenerateCode = () => {
+    // Get the last AI response (which should contain the generated code)
+    const lastAiMessage = messages.findLast(m => !m.isUser);
+    if (lastAiMessage) {
+      navigate('/code-entry', { state: { code: lastAiMessage.text } });
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <Container>
+      <ContentWrapper>
+        <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
+          <BackButton onClick={() => navigate(-1)} />
+        </div>
+        <ThemeSwitch />
+        <Header>
+          <Title>Write Code with AI</Title>
+          <Description>
+            Describe what you want to build, and our AI assistant will generate the code for you. 
+            Once generated, you can continue the conversation or move to the code editor.
+          </Description>
+        </Header>
+
+        <ModelSelector 
+          value={selectedModel} 
+          onChange={(e) => setSelectedModel(e.target.value)}
+          disabled={isLoading}
+        >
+          {models.length > 0 ? (
+            models.map(model => (
+              <option key={model} value={model}>{model}</option>
+            ))
+          ) : (
+            <option>Loading models...</option>
+          )}
+        </ModelSelector>
+
+        <ChatContainer>
+          <MessagesContainer>
+            {messages.map((message, index) => (
+              <Message key={index} isUser={message.isUser}>
+                {message.text}
+              </Message>
+            ))}
+            {isLoading && (
+              <Message isUser={false}>
+                Thinking...
+              </Message>
+            )}
+            <div ref={messagesEndRef} />
+          </MessagesContainer>
+          <InputContainer>
+            <InputField
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Describe what you want to build..."
+              disabled={isLoading}
+            />
+            <SendButton onClick={handleSend} disabled={isLoading || !inputValue.trim()}>
+              Send
+            </SendButton>
+          </InputContainer>
+        </ChatContainer>
+
+        <GenerateButton 
+          onClick={handleGenerateCode} 
+          disabled={messages.length === 0 || isLoading}
+        >
+          Use This Code
+        </GenerateButton>
+      </ContentWrapper>
     </Container>
   );
 };

@@ -234,49 +234,47 @@ export function finalizeFlowContext(context) {
             
             console.log('Next statement after switch:', nextStatementId);
             
-            // If we found the next statement, connect only the break statement pending joins to it
-            if (nextStatementId) {
-              // Filter pending joins to only include those from break statements
-              const breakJoins = [];
-              const remainingJoins = [];
+            // Connect break statement pending joins to the next statement after switch (or END if no next statement)
+            // Filter pending joins to only include those from break statements
+            const breakJoins = [];
+            const remainingJoins = [];
+            
+            context.pendingJoins.forEach(join => {
+              const breakEdges = [];
+              const otherEdges = [];
               
-              context.pendingJoins.forEach(join => {
-                const breakEdges = [];
-                const otherEdges = [];
-                
-                join.edges.forEach(edge => {
-                  if (breakNodeIds.has(edge.from)) {
-                    breakEdges.push(edge);
-                  } else {
-                    otherEdges.push(edge);
-                  }
-                });
-                
-                if (breakEdges.length > 0) {
-                  breakJoins.push({ edges: breakEdges });
-                }
-                
-                if (otherEdges.length > 0) {
-                  remainingJoins.push({ edges: otherEdges });
+              join.edges.forEach(edge => {
+                if (breakNodeIds.has(edge.from)) {
+                  breakEdges.push(edge);
+                } else {
+                  otherEdges.push(edge);
                 }
               });
               
-              // Connect break statement pending joins to the next statement
-              breakJoins.forEach(join => {
-                join.edges.forEach(({ from, label }) => {
-                  if (!from) return;
-                  console.log('Connecting break statement', from, 'to', nextStatementId);
-                  if (label) {
-                    context.addEdge(from, nextStatementId, label);
-                  } else {
-                    context.addEdge(from, nextStatementId);
-                  }
-                });
-              });
+              if (breakEdges.length > 0) {
+                breakJoins.push({ edges: breakEdges });
+              }
               
-              // Keep remaining pending joins for later processing
-              context.pendingJoins = remainingJoins;
-            }
+              if (otherEdges.length > 0) {
+                remainingJoins.push({ edges: otherEdges });
+              }
+            });
+            
+            // Connect break statement pending joins to the next statement after switch, or to END if no next statement
+            breakJoins.forEach(join => {
+              const target = nextStatementId || 'END';  // Default to END if no next statement found
+              join.edges.forEach(({ from, label }) => {
+                if (!from) return;
+                if (label) {
+                  context.addEdge(from, target, label);
+                } else {
+                  context.addEdge(from, target);
+                }
+              });
+            });
+            
+            // Keep remaining pending joins for later processing
+            context.pendingJoins = remainingJoins;
           });
         }
       }
@@ -319,43 +317,53 @@ export function finalizeFlowContext(context) {
               edge.startsWith(`${switchId} -->`)
             );
             
-            // Find the last switch-related node by checking all nodes after the switch
-            let lastSwitchNodeIndex = switchIndex;
+            // Find all nodes that are part of this switch by tracking the case branches
+            // Start with the switch node
+            const switchRelatedNodes = new Set([switchId]);
             
-            // Look for all nodes that are part of this switch
+            // Find all nodes that connect directly from the switch (the cases and default)
+            const directlyConnected = [];
+            context.edges.forEach(edge => {
+              const match = edge.match(/^(N\d+) --> (N\d+)/);
+              if (match && match[1] === switchId) {
+                const targetId = match[2];
+                directlyConnected.push(targetId);
+                switchRelatedNodes.add(targetId); // Add the case/default nodes
+              }
+            });
+            
+            // For each directly connected node (case/default), find all nodes in its execution path
+            directlyConnected.forEach(caseId => {
+              const caseIndex = nodeInfos.findIndex(n => n.id === caseId);
+              if (caseIndex !== -1) {
+                // From this case node, follow the linear path until we hit a break or reach a node that's already processed
+                for (let k = caseIndex + 1; k < nodeInfos.length; k++) {
+                  const currentInfo = nodeInfos[k];
+                  
+                  // Check if there's an edge from the previous node to this one
+                  const prevId = k > 0 ? nodeInfos[k-1]?.id : null;
+                  if (prevId && context.edges.some(edge => 
+                    edge === `${prevId} --> ${currentInfo.id}`
+                  )) {
+                    // This is part of the linear execution path from the case
+                    switchRelatedNodes.add(currentInfo.id);
+                    
+                    // If this is a break statement, stop following this path
+                    if (currentInfo.node.includes('break;')) {
+                      break;
+                    }
+                  } else {
+                    // No linear connection, stop following this path
+                    break;
+                  }
+                }
+              }
+            });
+            
+            // Find the highest index among switch-related nodes
+            let lastSwitchNodeIndex = switchIndex;
             for (let i = switchIndex + 1; i < nodeInfos.length; i++) {
-              const nodeInfo = nodeInfos[i];
-              const nodeId = nodeInfo.id;
-              
-              // Check if this node is part of the switch
-              // A node is part of the switch if:
-              // 1. It explicitly contains switch-related keywords
-              // 2. It's connected from a case/default node
-              // 3. It comes after a case/default but before a break
-              const isSwitchRelated = 
-                nodeInfo.node.includes('case ') || 
-                nodeInfo.node.includes('default:') ||
-                nodeInfo.node.includes('break;') ||
-                caseEdges.some(edge => edge.includes(`--> ${nodeId}`)) ||
-                // Check if this node comes after a case/default but before a break
-                (i > switchIndex && i < nodeInfos.length - 1 && 
-                 (() => {
-                   // Look backwards to see if we're in a case block
-                   for (let j = i - 1; j > switchIndex; j--) {
-                     const prevNodeInfo = nodeInfos[j];
-                     if (prevNodeInfo.node.includes('break;')) {
-                       // Found a break before this node, so this node is not part of a case
-                       return false;
-                     }
-                     if (prevNodeInfo.node.includes('case ') || prevNodeInfo.node.includes('default:')) {
-                       // Found a case/default before this node, so this node is part of a case
-                       return true;
-                     }
-                   }
-                   return false;
-                 })());
-              
-              if (isSwitchRelated) {
+              if (switchRelatedNodes.has(nodeInfos[i].id)) {
                 lastSwitchNodeIndex = i;
               } else {
                 // Once we find a non-switch node, we can stop looking
@@ -640,6 +648,20 @@ export function finalizeFlowContext(context) {
         }
       }
     }
+  }
+
+  // Handle function call connections to subgraphs
+  if (context.functionCalls && context.subgraphIds) {
+    context.functionCalls.forEach(call => {
+      const { callId, functionName } = call;
+      
+      if (functionName && context.subgraphIds[functionName]) {
+        // Create connection between function call and its subgraph
+        const subgraphId = context.subgraphIds[functionName];
+        // Add a connection between the function call node and the subgraph
+        context.edges.push(`${callId} -.-> ${subgraphId}`);
+      }
+    });
   }
 
   // Return the predefined END node

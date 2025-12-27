@@ -20,18 +20,23 @@ export function mapBreakStatement(node, ctx) {
   
   // If we're in a switch statement, track the break for proper connection
   if (ctx.currentSwitchId) {
-    // Connect break statement to flowchart normally first
-    linkNext(ctx, breakId);
+    // Connect break statement to the previous statement in the case
+    if (ctx.last) {
+      ctx.addEdge(ctx.last, breakId);
+    }
     
-    // Then track the break statement with its switch level for later connection
+    // Track the break statement with its switch level for later connection
     const switchLevel = (ctx.switchEndNodes?.length || 1) - 1;
     if (!ctx.pendingBreaks) {
       ctx.pendingBreaks = [];
     }
     // Use a marker value that will be replaced in finalize context
     ctx.pendingBreaks.push({ breakId, switchLevel, nextStatementId: 'NEXT_AFTER_SWITCH' });
+    
+    // Don't set breakId as the last node to avoid linear connection after break
+    // The break should not continue the linear flow, it should exit the switch
   } else {
-    // For non-switch breaks, connect break statement to flowchart normally
+    // For non-switch breaks (e.g., in loops), connect break statement to flowchart normally
     linkNext(ctx, breakId);
   }
   

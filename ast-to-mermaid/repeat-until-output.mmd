@@ -1,0 +1,14 @@
+flowchart TD
+  START(["start"])
+  N1["var i: integer"]
+  N2["i := 1"]
+  N3{"until i > 5;"}
+  N4[/"writeln(i);; i := i + 1;"/]
+  N5[/"writeln(i);; i := i + 1;"/]
+  END(["end"])
+  START --> N1
+  N1 --> N2
+  N3 -- No --> N4
+  N4 --> N3
+  N4 --> N5
+  N5 --> END

@@ -1,0 +1,20 @@
+flowchart TD
+  START(["start"])
+  N1["var x: integer"]
+  N2{"case x"}
+  N3["case 1:"]
+  N4["begin writeln('One'); end"]
+  N5["case 2:"]
+  N6["begin writeln('Two'); end"]
+  N7["else:"]
+  N8["begin writeln('Other') end"]
+  END(["end"])
+  START --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 --> N4
+  N2 --> N5
+  N5 --> N6
+  N2 --> N7
+  N7 --> N8
+  N8 --> END

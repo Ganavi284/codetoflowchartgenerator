@@ -1,0 +1,20 @@
+flowchart TD
+  START(["start"])
+  N1["var choice: integer"]
+  N2[/"write('Enter choice: ')"/]
+  N3[/"readln(choice)"/]
+  N4{"case choice"}
+  N5["case 1: begin writeln('You selected option 1'); writeln('This is a multi-line case'); end"]
+  N6["case 2: begin writeln('You selected option 2'); choice := choice + 1; end"]
+  N7["case 3: writeln('Simple single line case')"]
+  N8["else: begin writeln('Invalid choice'); choice := 0"]
+  END(["end"])
+  START --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 --> N4
+  N4 --> N5
+  N4 --> N6
+  N4 --> N7
+  N4 --> N8
+  N8 --> END

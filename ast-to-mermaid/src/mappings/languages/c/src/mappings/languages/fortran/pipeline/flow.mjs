@@ -14,6 +14,10 @@ import { mapAssign } from '../../c/other-statements/assign.mjs';
 import { mapIO } from '../../c/io/io.mjs';
 import { mapDecl } from '../../c/other-statements/declaration.mjs';
 import { mapExpr } from '../../c/other-statements/expression.mjs';
+// Import Fortran-specific conditional mapping functions
+import { mapIf as mapIfFortran } from '../conditional/if.mjs';
+import { mapIfElse } from '../conditional/if-else/if-else.mjs';
+import { mapIfElseIf } from '../conditional/if-elseif/if-elseif.mjs';
 // Import switch statement mapping functions
 import { mapSelectCase, mapCase, mapCaseDefault } from '../conditional/switch/switch.mjs';
 
@@ -24,7 +28,20 @@ import { mapSelectCase, mapCase, mapCaseDefault } from '../conditional/switch/sw
  */
 export function mapNodeFortran(node, ctx, mapper) {
   switch (node.type) {
-    case "If": return mapIf(node, ctx, mapper);
+    case "If": 
+      // Check if this is a simple if, if-else, or if-elseif by examining the structure
+      if (node.else && Array.isArray(node.else) && node.else.length > 0) {
+        // Check if the else branch contains another If node (elseif case)
+        if (node.else.length === 1 && node.else[0].type === 'If') {
+          return mapIfElseIf(node, ctx, mapper);
+        } else {
+          // This is a regular if-else
+          return mapIfElse(node, ctx, mapper);
+        }
+      } else {
+        // This is a simple if statement
+        return mapIfFortran(node, ctx, mapper);
+      }
     case "For": return mapFor(node, ctx, mapper);
     case "While": return mapWhile(node, ctx, mapper);
     case "Function": return mapFunction(node, ctx, mapper);

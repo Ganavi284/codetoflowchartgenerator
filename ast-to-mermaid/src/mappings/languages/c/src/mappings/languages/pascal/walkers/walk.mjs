@@ -1,8 +1,4 @@
-// Keep track of statement nodes that have been processed as loop bodies
-const processedLoopStatements = new WeakSet();
-
-// Keep track of nodes that are already being processed to avoid duplication
-// const processingNodes = new WeakSet();
+// Walker for normalized Pascal AST nodes
 
 export function walk(node, ctx) {
   if (!node) return;
@@ -12,35 +8,47 @@ export function walk(node, ctx) {
     ctx.handle(node);
   }
 
-  // Special handling for If nodes to process then and else branches
-  if (node.type === 'if' || node.type === 'ifElse') {
-    // Process condition first
-    for (let i = 0; i < node.childCount; i++) {
-      const child = node.child(i);
-      if (child && child.type !== 'statement' && child.type !== 'block' && child.type !== 'kThen' && child.type !== 'kElse') {
-        walk(child, ctx);
-      }
-    }
+  // Special handling for If nodes - the mapper handles branch registration
+  // We just need to walk the body of the branches, not the branches themselves
+  if (node.type === 'If') {
+    // The if mapper has already registered the if statement with the context
+    // We just walk the contents of the branches
     
-    // Process then branch
-    const thenStatement = findThenStatement(node);
-    if (thenStatement) {
+    // Process then branch contents
+    if (node.then) {
       if (typeof ctx?.enterBranch === 'function') {
+        console.log('Entering then branch');
         ctx.enterBranch('then');
-        walk(thenStatement, ctx);
+        // Walk the contents of the then branch
+        if (node.then.body && Array.isArray(node.then.body)) {
+          node.then.body.forEach(child => {
+            if (child) {
+              walk(child, ctx);
+            }
+          });
+        }
         if (typeof ctx.exitBranch === 'function') {
+          console.log('Exiting then branch');
           ctx.exitBranch('then');
         }
       }
     }
     
-    // Process else branch if it exists
-    const elseStatement = findElseStatement(node);
-    if (elseStatement) {
+    // Process else branch contents if it exists
+    if (node.else) {
       if (typeof ctx?.enterBranch === 'function') {
+        console.log('Entering else branch');
         ctx.enterBranch('else');
-        walk(elseStatement, ctx);
+        // Walk the contents of the else branch
+        if (node.else.body && Array.isArray(node.else.body)) {
+          node.else.body.forEach(child => {
+            if (child) {
+              walk(child, ctx);
+            }
+          });
+        }
         if (typeof ctx.exitBranch === 'function') {
+          console.log('Exiting else branch');
           ctx.exitBranch('else');
         }
       }
@@ -48,114 +56,36 @@ export function walk(node, ctx) {
     
     // Complete the if statement
     if (typeof ctx?.completeIf === 'function') {
+      console.log('Completing if statement');
       ctx.completeIf();
     }
     
     return;
   }
   
-  // Handle loop completion - follow C pattern exactly
-  const loopTypes = ['for', 'while', 'repeat'];
-  if (loopTypes.includes(node.type)) {
-    // For Pascal loops, walk ONLY the body and nothing else
-    // Find and walk the actual loop body (statement, block, or statements)
-    for (let i = 0; i < node.childCount; i++) {
-      const child = node.child(i);
-      // Only walk statement, block, or statements children that are the actual body
-      // This ensures we don't walk loop variables, conditions, etc.
-      if (child && (child.type === 'statement' || child.type === 'block' || child.type === 'statements')) {
-        walk(child, ctx);
-        // In Pascal, loops have a single body, so we can break after the first one
-        break;
-      }
-    }
-
-    // Complete the loop to resolve connections back to loop condition
-    if (typeof ctx?.completeLoop === 'function') {
-      ctx.completeLoop();
-    }
-
-    // Do not process any children of this loop node to prevent duplication
-    return;
-  }
-  
-  if (node.type === 'statement') {
-    // Process statement nodes by walking their children
-    for (let i = 0; i < node.childCount; i++) {
-      const child = node.child(i);
-      if (child) {
-        // Walk the child node (this will handle it appropriately)
-        walk(child, ctx);
-      }
+  // Handle Block nodes
+  if (node.type === 'Block') {
+    // Process Block nodes by walking their body
+    if (node.body && Array.isArray(node.body)) {
+      node.body.forEach(child => {
+        if (child) {
+          walk(child, ctx);
+        }
+      });
     }
     return;
   }
   
-  if (node.type === 'statements') {
-    // Process statements nodes by walking their children
-    for (let i = 0; i < node.childCount; i++) {
-      const child = node.child(i);
-      if (child) {
-        // Walk the child node (this will handle it appropriately)
-        walk(child, ctx);
-      }
+  // Handle Program nodes
+  if (node.type === 'Program') {
+    // Process Program nodes by walking their body
+    if (node.body && Array.isArray(node.body)) {
+      node.body.forEach(child => {
+        if (child) {
+          walk(child, ctx);
+        }
+      });
     }
     return;
   }
-  
-  // Process all children of the node
-  for (let i = 0; i < node.childCount; i++) {
-    const child = node.child(i);
-    if (child) {
-      walk(child, ctx);
-    }
-  }
-}
-
-/**
- * Find then statement in an if statement
- * @param {Object} node - If statement node
- * @returns {Object|null} Then statement node or null
- */
-function findThenStatement(node) {
-  if (!node || !node.childCount) return null;
-  
-  let foundThen = false;
-  for (let i = 0; i < node.childCount; i++) {
-    const child = node.child(i);
-    if (child && child.type === 'kThen') {
-      foundThen = true;
-      continue;
-    }
-    
-    if (foundThen && child && (child.type === 'statement' || child.type === 'block')) {
-      return child;
-    }
-  }
-  
-  return null;
-}
-
-/**
- * Find else statement in an if statement
- * @param {Object} node - If statement node
- * @returns {Object|null} Else statement node or null
- */
-function findElseStatement(node) {
-  if (!node || !node.childCount) return null;
-  
-  let foundElse = false;
-  for (let i = 0; i < node.childCount; i++) {
-    const child = node.child(i);
-    if (child && child.type === 'kElse') {
-      foundElse = true;
-      continue;
-    }
-    
-    if (foundElse && child && (child.type === 'statement' || child.type === 'block')) {
-      return child;
-    }
-  }
-  
-  return null;
 }

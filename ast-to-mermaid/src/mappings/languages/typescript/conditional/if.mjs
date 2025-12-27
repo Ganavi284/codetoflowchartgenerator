@@ -1,5 +1,5 @@
 import { shapes } from "../../../../mermaid/shapes.mjs";
-import { linkNext } from "../../../languages/c/mappings/common/common.mjs";
+import { linkNext } from "../mappings/common/common.mjs";
 
 // Helper function to create decision shape with text
 const decisionShape = (text) => shapes.decision.replace('{}', text);
@@ -96,6 +96,16 @@ export function mapIfStatement(node, ctx, mapper) {
 
   // Complete the if statement and handle branch merging
   if (typeof ctx.completeIf === 'function') {
-    ctx.completeIf();
+    // Check if we're inside a switch case and need special handling
+    if (ctx.currentSwitchId) {
+      // Complete the if normally
+      ctx.completeIf();
+      
+      // When inside a switch case, the conditional branches should connect to the break statement
+      // rather than to END or the next linear statement
+      // The finalize context will handle connecting them properly
+    } else {
+      ctx.completeIf();
+    }
   }
 }

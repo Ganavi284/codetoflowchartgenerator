@@ -378,10 +378,44 @@ export function ctx() {
       return true;
     },
     
+    // Fork context for subgraph creation
+    fork() {
+      const forkedCtx = ctx();
+      // Copy relevant properties for subgraph
+      forkedCtx.nodes = [];
+      forkedCtx.edges = [];
+      forkedCtx.nodeOrder = [];
+      forkedCtx.last = null;
+      forkedCtx.lastNodeId = null;
+      forkedCtx.ifStack = [];
+      forkedCtx.pendingJoins = [];
+      forkedCtx.switchEndNodes = [];
+      forkedCtx.pendingBreaks = [];
+      forkedCtx.currentSwitchId = null;
+      return forkedCtx;
+    },
+    
+    // Subgraph functionality
+    subgraphs: [],
+    
+    addSubgraph(label, content) {
+      this.subgraphs.push({
+        label: label,
+        content: content
+      });
+    },
+    
+    nextSubgraphId() {
+      if (!this.subgraphCounter) {
+        this.subgraphCounter = 1;
+      }
+      return `SUB${this.subgraphCounter++}`;
+    },
+    
     // Generate complete Mermaid flowchart
     emit() {
       // Handle empty flowcharts
-      if (this.nodes.length === 0) {
+      if (this.nodes.length === 0 && this.subgraphs.length === 0) {
         return [
           'flowchart TD',
           '  START(["start"])',
@@ -416,6 +450,17 @@ export function ctx() {
       } else {
         // If no nodes were added, connect start directly to end
         lines.push('  START --> END');
+      }
+      
+      // Add subgraphs
+      if (this.subgraphs && this.subgraphs.length > 0) {
+        this.subgraphs.forEach(subgraph => {
+          lines.push(`  subgraph ${subgraph.label}`);
+          subgraph.content.forEach(line => {
+            lines.push(`    ${line}`);
+          });
+          lines.push('  end');
+        });
       }
       
       return lines.join('\n');
